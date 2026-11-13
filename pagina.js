@@ -13,7 +13,7 @@
 // a armadilha do «Criar» (textContent "Novo postCriar", tela só "Criar") e a do
 // «Original» (rótulo num <span> dentro do botão — o innerText do botão é o mesmo).
 (() => {
-  const VERSAO = 3;
+  const VERSAO = 4;
   if (self.SP && self.SP.versao === VERSAO) return;
 
   const INVIS = /[​‌‍﻿⁠]/g;
@@ -89,6 +89,57 @@
     existe(cands) { return !!achar(cands, true); },
 
     onde() { return location.origin + location.pathname; },
+
+    async campoArquivo(cands, prazoMs) {
+      const a = await esperarAchar(cands, prazoMs, false);
+      return a ? { ok: true, idx: a.idx } : { ok: false, erro: 'o campo de arquivo não apareceu' };
+    },
+
+    arquivoInfo(cands) {
+      const a = achar(cands, false);
+      const f = a && a.el.files && a.el.files[0];
+      return f ? { nome: f.name, tamanho: f.size, tipo: f.type } : null;
+    },
+
+    progressoUpload(cands) {
+      const a = achar(cands, true);
+      if (!a) return { percentual: null, texto: '' };
+      const els = [a.el, ...a.el.querySelectorAll('[role="progressbar"], [aria-label], span, div')];
+      for (const el of els) {
+        if (!visivel(el) || el.closest('[contenteditable="true"]')) continue;
+        const aria = el.getAttribute('aria-label') || '';
+        const texto = norm(el.innerText);
+        for (const s of [aria, texto.length < 180 ? texto : '']) {
+          const m = s.match(/(?:Uploading|Enviando|A carregar|Carregando)\s*\(?\s*(\d{1,3})\s*%\)?/i);
+          if (m && Number(m[1]) <= 100) return { percentual: Number(m[1]), texto: m[0] };
+        }
+        if (el.getAttribute('role') === 'progressbar' && el.hasAttribute('aria-valuenow')) {
+          const n = Number(el.getAttribute('aria-valuenow'));
+          const max = Number(el.getAttribute('aria-valuemax') || 100);
+          if (max > 0 && n >= 0 && n <= max) return { percentual: Math.round(n * 100 / max), texto: `Uploading (${Math.round(n * 100 / max)}%)` };
+        }
+      }
+      return { percentual: null, texto: '' };
+    },
+
+    /** Só rótulos explícitos do AUTOR no compositor, nunca o texto da legenda
+     * nem o nome da página visto no feed ou no seletor de perfis. */
+    facebookComo(nome) {
+      const nomes = [];
+      const prefixo = /^(?:Posting as|Publicar como|Publicando como|A publicar como)\s*:?\s+(.+)$/i;
+      for (const dialogo of document.querySelectorAll('[role="dialog"]')) {
+        if (!visivel(dialogo) || !dialogo.querySelector('[contenteditable="true"], [role="textbox"]')) continue;
+        for (const el of dialogo.querySelectorAll('[aria-label], span, strong')) {
+          if (!visivel(el) || el.closest('[contenteditable="true"], [role="textbox"]')) continue;
+          for (const s of [el.getAttribute('aria-label'), el.innerText]) {
+            const m = norm(s).match(prefixo);
+            if (m) nomes.push(norm(m[1]));
+          }
+        }
+      }
+      const unicos = [...new Set(nomes.map(n => n.toLocaleLowerCase()))];
+      return { ok: unicos.length === 1 && unicos[0] === norm(nome).toLocaleLowerCase(), nomes };
+    },
 
     /** O MEDIDOR da extensão: o que está na tela quando uma etapa falha.
      * Endereço, idioma, tamanho da janela, se parece login, os diálogos abertos

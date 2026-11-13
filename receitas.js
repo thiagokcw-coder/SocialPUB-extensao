@@ -24,6 +24,8 @@ const RECEITAS = {
     // diálogo abrir e nunca use os campos que ficam atrás dele.
     abrir: { esperar: ['[role=dialog] div[data-testid="tweetTextarea_0"]'] },
     arquivo: ['[role=dialog] input[data-testid="fileInput"]'],
+    arquivo_nativo: true,
+    upload: ['[role=dialog]'],
     legenda: ['[role=dialog] div[data-testid="tweetTextarea_0"]'],
     anexos: ['[role=dialog] [data-testid="attachments"]'],
     depois_do_arquivo: ['[role=dialog] [data-testid="attachments"]'],
@@ -138,34 +140,51 @@ const RECEITAS = {
     medido_em: '2026-11-04 · 2026-11-10 (app)',
     // «Novo post» pode existir OCULTO no Chrome (10/11): só candidato visível.
     abrir: {
-      clicar: [{ css: 'div[role="button"]', texto: 'Criar' }, '[role="button"][aria-label="Novo post"]',
-               { css: 'div[role="button"]', texto: 'Novo post' },
-               '[aria-label="Corpo da coluna"] div[role="button"][aria-label^="Campo de texto"]'],
-      esperar: ['[role="dialog"] div[role="textbox"]'],
+      clicar: [
+        ...['Criar', 'Create', 'Novo post', 'Nova publicação', 'New thread', 'New post'].flatMap(t => [
+          `[role="button"][aria-label="${t}"]`, `button[aria-label="${t}"]`,
+          `[role="button"]:has(svg[aria-label="${t}"])`, `a:has(svg[aria-label="${t}"])`,
+          { css: 'button, [role="button"]', texto: t }]),
+        ...['Campo de texto', 'Empty text field', 'Text field'].map(t => `[role="button"][aria-label^="${t}"]`),
+        { css: 'button, [role="button"]', texto: "What's new?" }],
+      esperar: ['[role="dialog"] [role="textbox"]', '[role="dialog"] [contenteditable="true"]'],
     },
     arquivo: ['[role="dialog"] input[type="file"][accept*="image"]', '[role="dialog"] input[type="file"]'],
-    legenda: ['[role="dialog"] div[role="textbox"]'],
+    legenda: ['[role="dialog"] [role="textbox"]', '[role="dialog"] [contenteditable="true"]',
+              '[role="dialog"] textarea[placeholder="What\'s new?"]'],
     // pt-BR «Postar»; no navegador do Grok (pt-PT, 13/11, foto do usuário) o
     // botão é «Publicar» — a leva esperou 180s por um «Postar» que não existia.
-    publicar: ['Postar', 'Publicar', 'Post'].map(t => ({ css: '[role="dialog"] div[role="button"]', texto: t })),
+    publicar: ['Postar', 'Publicar', 'Post'].map(t => ({ css: '[role="dialog"] [role="button"], [role="dialog"] button', texto: t })),
   },
 
   facebook: {
     nome: 'Facebook',
-    url: 'https://www.facebook.com/post/create',
+    url: 'https://www.facebook.com/',
     aceita: ['imagem', 'video', 'texto'],
     legenda_max: 63206,
     medido_em: '2026-10-23 (app)',
-    arquivo: ['input[type="file"][accept*="image"]', 'input[type="file"]'],
+    perfil: {
+      menu: ['Your profile', 'Seu perfil', 'O teu perfil', 'Account', 'Conta'].flatMap(t => [
+        `[role="banner"] [role="button"][aria-label="${t}"]`, `[role="banner"] button[aria-label="${t}"]`]),
+      todos: ['See all profiles', 'Ver todos os perfis'].map(t => ({ css: '[role="menu"] [role="button"], [role="menuitem"], [role="dialog"] [role="button"], [role="dialog"] button', texto: t })),
+      pagina: [{ css: '[role="dialog"] [role="button"], [role="dialog"] [role="radio"], [role="menu"] [role="menuitem"]', texto: '{u}' },
+               { css: '[role="dialog"] [role="button"], [role="dialog"] [role="radio"], [role="menu"] [role="menuitem"]', filhoTexto: '{u}' }],
+    },
+    abrir: {
+      clicar: ["What's on your mind?", 'No que você está pensando?', 'Em que estás a pensar?', 'Create post', 'Criar publicação'].map(t => ({ css: '[role="main"] [role="button"], [role="main"] button', contem: t })),
+      esperar: ['[role="dialog"] [role="textbox"]', '[role="dialog"] [contenteditable="true"]'],
+    },
+    arquivo: ['[role="dialog"] input[type="file"][accept*="video"]', '[role="dialog"] input[type="file"][accept*="image"]', '[role="dialog"] input[type="file"]'],
     // Duas telas de chegada: vídeo vira «Criar reel» (Postar), imagem fica no
     // post (Publicar). Escrever durante a troca seria escrever no DOM que sai.
-    depois_do_arquivo: ['div[aria-label="Postar"]', { css: 'div[role="button"]', texto: 'Postar' },
-                        'div[aria-label="Publicar"]'],
+    depois_do_arquivo: ['[role="dialog"] video', '[role="dialog"] [role="button"][aria-label="Post"]',
+      ...['Post', 'Publicar', 'Postar', 'Next', 'Avançar', 'Seguinte'].map(t => ({ css: '[role="dialog"] [role="button"], [role="dialog"] button', texto: t }))],
     espera_arquivo_s: 120,
     // Sem data-testid; o aria-label do editor tem o nome da conta. Sobra o papel.
-    legenda: ['div[role="textbox"][contenteditable="true"]', 'div[role="textbox"]'],
-    publicar: ['div[aria-label="Publicar"]', 'div[aria-label="Post"]', 'div[aria-label="Postar"]',
-               { css: 'div[role="button"]', texto: 'Postar' }, { css: 'div[role="button"]', texto: 'Post' }],
+    legenda: ['[role="dialog"] [role="textbox"][contenteditable="true"]', '[role="dialog"] [role="textbox"]'],
+    publicar: ['Publicar', 'Post', 'Postar', 'Publish'].flatMap(t => [
+      `[role="dialog"] [role="button"][aria-label="${t}"]`,
+      { css: '[role="dialog"] [role="button"], [role="dialog"] button', texto: t }]),
   },
 };
 

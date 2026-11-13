@@ -55,6 +55,29 @@ function _motorTrocar(cands, u) {
 
 class EtapaFalhou extends Error {}
 
+/** Monitor usado também no modo preparar, sem clicar em publicar. */
+async function spVigiarUpload({ ler, botao, log, maxMs = 180000, zeroMs = 30000,
+  agora = Date.now, pausa = ms => new Promise(r => setTimeout(r, ms)) }) {
+  const inicio = agora();
+  let zeroDesde = null, ultimo = null;
+  for (;;) {
+    const p = await ler();
+    const b = await botao();
+    if (p.percentual != null) {
+      if (p.percentual !== ultimo) log('upload: ' + p.texto);
+      ultimo = p.percentual;
+      if (p.percentual === 0) { if (zeroDesde == null) zeroDesde = agora(); }
+      else zeroDesde = null;
+    }
+    if (b.habilitado && (p.percentual == null || p.percentual === 100)) return;
+    if (zeroDesde != null && agora() - zeroDesde >= zeroMs) {
+      throw new EtapaFalhou('o upload ficou em 0% por 30s — o X não iniciou o envio; nada foi publicado');
+    }
+    if (agora() - inicio >= maxMs) throw new EtapaFalhou('o upload/processamento do X não terminou em 180s — nada foi publicado');
+    await pausa(1000);
+  }
+}
+
 /**
  * Prepara a publicação numa rede; publica se `opcoes.publicar`.
  * `midia` = {nome, tipo, b64} ou null; `opcoes` = {publicar: bool, colaboradores: ['a', 'b'],
@@ -94,6 +117,14 @@ async function prepararRede(redeId, midia, texto, opcoes) {
   };
   const naAba = (m, ...a) => _motorNaAba(tabId, m, a);
 
+  async function conferirPaginaFacebook() {
+    if (!R.perfil) return;
+    const nome = String(opcoes.facebookPagina || '').trim();
+    const lido = nome ? await naAba('facebookComo', nome) : null;
+    if (!lido || !lido.ok) throw new EtapaFalhou(`Facebook não está como a página ${nome || '(configure a página na persona)'}`);
+    log(`✓ Facebook está como a página ${nome}`, 'ok');
+  }
+
   async function clicar(cands, prazoMs, oQue) {
     const p = await naAba('localizar', cands, prazoMs);
     if (!p || !p.ok) throw new EtapaFalhou(`${oQue}: ${(p && p.erro) || 'sem resposta da aba'}`);
@@ -130,6 +161,15 @@ async function prepararRede(redeId, midia, texto, opcoes) {
   }
 
   try {
+    if (R.perfil) {
+      const nome = String(opcoes.facebookPagina || '').trim();
+      if (!nome) throw new EtapaFalhou('Facebook não está como a página (configure a página na persona)');
+      await clicar(R.perfil.menu, ESPERA_PADRAO_MS, 'menu do perfil');
+      await clicar(R.perfil.todos, 10000, 'ver todos os perfis');
+      await clicar(_motorTrocar(R.perfil.pagina, nome), 10000, 'página do Facebook');
+      await naAba('sumiu', R.perfil.todos, 10000);
+      await new Promise(r => setTimeout(r, 1500));
+    }
     // ── 1. abrir o compositor (só onde ele é um modal) ────────────────────
     if (R.abrir) {
       if (await naAba('existe', R.abrir.esperar)) {
@@ -164,11 +204,35 @@ async function prepararRede(redeId, midia, texto, opcoes) {
       }
     }
 
+    await conferirPaginaFacebook();
+
     // ── 2. anexar ─────────────────────────────────────────────────────────
     if (midia) {
-      const a = await naAba('anexar', midia.b64, midia.nome, midia.tipo, R.arquivo, ESPERA_PADRAO_MS);
+      let a;
+      if (R.arquivo_nativo && opcoes.uploadMetodo !== 'sintetico') {
+        const caminho = await spArquivoNativo(midia);
+        const campo = await naAba('campoArquivo', R.arquivo, ESPERA_PADRAO_MS);
+        if (!campo || !campo.ok) throw new EtapaFalhou('o campo de arquivo não apareceu');
+        const { root } = await cmd('DOM.getDocument', {});
+        const { nodeId } = await cmd('DOM.querySelector', { nodeId: root.nodeId, selector: R.arquivo[campo.idx] });
+        if (!nodeId) throw new EtapaFalhou('o campo de arquivo saiu da tela antes da entrega');
+        await cmd('DOM.setFileInputFiles', { nodeId, files: [caminho] });
+        const info = await naAba('arquivoInfo', R.arquivo);
+        if (!info || !info.tamanho || (midia.tamanho != null && info.tamanho !== midia.tamanho)) {
+          throw new EtapaFalhou('o arquivo nativo não chegou inteiro ao compositor');
+        }
+        log(`✓ arquivo nativo entregue (${info.tamanho} bytes)`, 'ok');
+        a = { ok: true };
+      } else {
+        a = await naAba('anexar', midia.b64, midia.nome, midia.tipo, R.arquivo, ESPERA_PADRAO_MS);
+      }
       if (!a || !a.ok) throw new EtapaFalhou('arquivo: ' + ((a && a.erro) || 'sem resposta'));
       log('✓ arquivo entregue ao campo', 'ok');
+      if (R.upload && tipo === 'video') {
+        await spVigiarUpload({ ler: () => naAba('progressoUpload', R.upload),
+          botao: () => naAba('botao', R.publicar), log });
+        log('✓ upload concluído: botão de publicar habilitado — ainda NÃO cliquei', 'ok');
+      }
       if (R.depois_do_arquivo) {
         const s = R.espera_arquivo_s || 60;
         log(`esperando a próxima tela (até ${s}s — vídeo pode estar subindo) …`);
@@ -230,6 +294,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     await new Promise(r => setTimeout(r, 1200));
     const lido = await naAba('ler', R.legenda, R.anexos || [], R.publicar);
     const res = { rede: redeId, avisos: fechados, lido };
+    await conferirPaginaFacebook();
     if (texto) {
       res.legendaOk = spNormalizar(lido.texto).includes(spNormalizar(texto));
       log(res.legendaOk ? '✓ legenda conferida: o texto INTEIRO está no editor' : '✗ a legenda NÃO bate com o que foi escrito',
@@ -268,6 +333,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     }
     // aviso por cima do botão comeria o clique (TikTok, 10/11)
     if (R.dispensar && await naAba('existe', R.dispensar)) await dispensarAvisos(0);
+    await conferirPaginaFacebook();
     // O upload pode falhar enquanto esperamos o botão habilitar.
     if (midia && R.anexos && R.anexos.length) {
       const atual = await naAba('ler', R.legenda, R.anexos, R.publicar);

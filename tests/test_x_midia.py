@@ -5,6 +5,7 @@ Usa uma réplica: não acessa contas nem publica nas redes reais.
 """
 import asyncio
 import base64
+import tempfile
 from pathlib import Path
 
 from playwright.async_api import async_playwright
@@ -52,6 +53,9 @@ window.chrome = {
 
 
 async def main():
+    temp = tempfile.TemporaryDirectory()
+    native = Path(temp.name) / 'video.mp4'
+    native.write_bytes(b'test fixture')
     async with async_playwright() as p:
         browser = await p.chromium.launch(channel="chrome", headless=True)
         page = await browser.new_page()
@@ -62,10 +66,11 @@ async def main():
             await page.goto("about:blank")
             await page.set_content(HTML)
             await page.add_script_tag(content=MOCK)
-            for name in ("pagina.js", "receitas.js", "teclado.js", "motor.js"):
+            for name in ("pagina.js", "receitas.js", "arquivo.js", "teclado.js", "motor.js"):
                 await page.add_script_tag(content=(ROOT / name).read_text(encoding="utf-8"))
             await page.evaluate(before or "openComposer()")
             video = {"nome": "video.mp4", "tipo": "video/mp4",
+                     "caminho": str(native), "tamanho": native.stat().st_size,
                      "b64": base64.b64encode(b"test fixture").decode()} if media else None
             return await page.evaluate("""([m, pub]) => prepararRede('x', m, 'Teste', {
                 publicar: pub, log: s => logs.push(s)
@@ -102,6 +107,7 @@ async def main():
         assert r.get('publicou') and await page.evaluate('posts === 1'), r
         print('OK: mídia presente e publicação intencional só com texto', flush=True)
         await browser.close()
+    temp.cleanup()
 
 
 asyncio.run(main())

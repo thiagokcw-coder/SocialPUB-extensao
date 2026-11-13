@@ -11,7 +11,7 @@ desligado.
 | Instagram | **só Reel (vídeo)** | Criar → Postar → arquivo → OK do aviso → corte **Original** → Avançar → Avançar → legenda → **colaboradores** |
 | TikTok | **só vídeo** | upload no TikTok Studio → espera o vídeo subir → fecha o aviso «Entendi» → apaga o nome do arquivo da legenda → legenda |
 | Threads | imagem, vídeo, só texto | Criar → arquivo → legenda |
-| Facebook | imagem, vídeo, só texto | `facebook.com/post/create` → arquivo → espera a tela certa → legenda |
+| Facebook | imagem, vídeo, só texto | troca para a **página da persona** → «No que você está pensando?» → arquivo → espera a tela certa → legenda → confere o autor |
 
 Os passos e seletores são os **medidos** no app SocialPUB (`publicador.py`).
 Instagram e Threads reconhecem a interface em **português do Brasil, de Portugal
@@ -196,6 +196,17 @@ senha.
 - Link `blob:` não serve. Acima de ~60 MB o painel avisa.
 
 ## Testes
+
+**0.8.10 — upload nativo no X e página no Facebook:** no X, o vídeo é salvo
+em `Downloads/SocialPUB/` e entregue ao campo de arquivo como arquivo de verdade
+(permissão nova: *downloads*); a extensão acompanha o «Uploading (n%)» e para
+sem publicar se ficar 30 s em 0% ou não terminar em 180 s. No Facebook, cada
+persona tem o campo **Facebook — publicar como página**: a extensão troca para
+essa página e confere o autor no compositor antes de escrever e de publicar; se
+não confirmar, para sem publicar. Threads reconhece também a interface em
+inglês («New thread», «What's new?»).
+
+`node tests/test_upload.js` testa o monitor de upload com relógio controlado.
 
 **0.8.8 — vídeo no X:** espera a janela de postagem abrir e usa apenas os
 campos dentro dela, sem recorrer ao compositor da linha do tempo. Depois de

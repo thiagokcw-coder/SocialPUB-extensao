@@ -56,3 +56,34 @@ async function spLerArquivo(arquivo) {
   return { nome: arquivo.name, tipo: arquivo.type || spTipoDaMidia('', arquivo.name),
            tamanho: arquivo.size, b64: await spBlobParaBase64(arquivo) };
 }
+
+/** O CDP recebe caminhos do disco, não File/base64. Guarda uma cópia no
+ * computador DESTE Chrome (também funciona quando ele roda na nuvem).
+ * Não apaga a cópia: o site pode continuar lendo-a depois de preparar. */
+async function spArquivoNativo(midia) {
+  if (midia.caminho) return midia.caminho;
+  if (!chrome.downloads) throw new Error('recarregue a extensão e permita downloads para anexar o arquivo nativo no X');
+  const bytes = Uint8Array.from(atob(midia.b64), c => c.charCodeAt(0));
+  if (!bytes.length || (midia.tamanho != null && midia.tamanho !== bytes.length)) {
+    throw new Error('o tamanho da mídia mudou ao decodificar o base64 — nada foi anexado');
+  }
+  const url = URL.createObjectURL(new Blob([bytes], { type: midia.tipo }));
+  try {
+    const nome = String(midia.nome || 'video.mp4').replace(/[^a-zA-Z0-9._-]/g, '_').replace(/^\.+/, '') || 'video.mp4';
+    const id = await chrome.downloads.download({ url, filename: 'SocialPUB/' + Date.now() + '-' + nome,
+      saveAs: false, conflictAction: 'uniquify' });
+    const fim = Date.now() + 60000;
+    while (Date.now() < fim) {
+      const [d] = await chrome.downloads.search({ id });
+      if (!d || d.state === 'interrupted') throw new Error('a cópia local da mídia foi interrompida');
+      if (d.state === 'complete') {
+        if (!d.filename || d.fileSize !== bytes.length) throw new Error('a cópia local da mídia não confere com o arquivo original');
+        midia.caminho = d.filename;
+        return midia.caminho;
+      }
+      await new Promise(r => setTimeout(r, 250));
+    }
+    await chrome.downloads.cancel(id).catch(() => {});
+    throw new Error('a cópia local da mídia não terminou em 60s');
+  } finally { URL.revokeObjectURL(url); }
+}

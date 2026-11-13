@@ -64,6 +64,8 @@ function desenharPersonas() {
   }
   $('colab').value = p ? (p.colab || '') : '';
   $('colab').disabled = !p;
+  $('facebook-pagina').value = p ? (p.facebook_pagina || '') : '';
+  $('facebook-pagina').disabled = !p;
   desenharContas();
   desenharRedes();
 }
@@ -112,6 +114,13 @@ $('colab').addEventListener('change', async () => {
   const p = persona();
   if (!p) return;
   p.colab = $('colab').value;
+  await salvar();
+});
+
+$('facebook-pagina').addEventListener('change', async () => {
+  const p = persona();
+  if (!p) return;
+  p.facebook_pagina = $('facebook-pagina').value.trim();
   await salvar();
 });
 
@@ -445,7 +454,7 @@ $('ir').addEventListener('click', async () => {
       log(`[${RECEITAS[id].nome}] sessão de ${conta.usuario ? '@' + conta.usuario : p.nome} no navegador (${e.gravados} cookie(s))`
           + (e.recusados.length ? ` · ${e.recusados.length} recusado(s) que não autenticam` : ''), e.recusados.length ? 'am' : 'ok');
       resultados.push(await prepararRede(id, midia, texto,
-        { publicar, colaboradores: id === 'instagram' ? colaboradores : [], log }));
+        { publicar, colaboradores: id === 'instagram' ? colaboradores : [], facebookPagina: p.facebook_pagina || '', log }));
     }
 
     log('');
