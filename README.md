@@ -54,6 +54,18 @@ da outra persona. Os **colaboradores do Instagram** também são por persona.
   acesso total às contas. Nunca vão para o GitHub. Não compartilhe o perfil do
   navegador.
 
+## Legenda por rede
+
+Cada rede tem o seu limite: **X 280 · Threads 500 · Instagram 2.200 · TikTok
+4.000 · Facebook 63.206** caracteres. Embaixo da **Legenda comum**, cada rede
+marcada mostra o contador dela (`usados / limite`, em vermelho quando passa).
+Marque **Legenda própria** para escrever um texto só daquela rede (abre já com a
+comum, para editar). Própria **vazia** vai vazia — é a forma de publicar numa
+rede sem legenda.
+
+Rede cuja legenda passe do limite **não é preparada**, e o relatório diz o
+tamanho e o limite. Nada é cortado sozinho.
+
 ## Usar
 
 1. Clique no ícone da extensão → abre o painel numa aba.
@@ -93,5 +105,6 @@ No repositório do SocialPUB: `tests/test_extensao.py` roda o motor inteiro com
 cliques e teclas reais contra réplicas do compositor de cada rede (34
 verificações), `tests/test_extensao_link.py` testa o download por link (7) e
 `tests/test_extensao_cookies.py` as contas por cookies (18) e
-`tests/test_extensao_personas.py` as personas no painel de verdade (20).
+`tests/test_extensao_personas.py` as personas e a legenda por rede no painel
+de verdade (27).
 As réplicas **não** provam o DOM real das redes — isso só o uso diz.

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SocialPUB",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Prepara a publicação no X, Instagram (Reel), TikTok, Threads e Facebook — anexa, escreve, confere e PARA antes de publicar.",
   "permissions": [
     "scripting",

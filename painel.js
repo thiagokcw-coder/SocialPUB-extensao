@@ -200,30 +200,76 @@ function desenharRedes() {
 
 chrome.storage.local.get({ redes: ['x'] }).then(s => {
   document.querySelectorAll('#redes input').forEach(c => { c.checked = s.redes.includes(c.value); });
+  desenharLegendas();   // marcar por código não dispara 'change'
 });
 $('redes').addEventListener('change', () => {
   chrome.storage.local.set({ redes: [...document.querySelectorAll('#redes input:checked')].map(c => c.value) });
 });
 
-$('leg').addEventListener('input', () => {
-  const n = $('leg').value.length;
-  const estourou = ORDEM_REDES.filter(id => document.querySelector(`#redes input[value=${id}]`).checked && n > RECEITAS[id].legenda_max);
-  $('cont').textContent = `${n} caracteres` + (estourou.length ? ` — passa do limite: ${estourou.map(id => RECEITAS[id].nome).join(', ')}` : '');
-  $('cont').className = 'dica' + (estourou.length ? ' am' : '');
+// ── legenda: comum + própria por rede ────────────────────────────────────
+// Cada rede tem o seu limite. Sem «Legenda própria» a rede usa a comum; com,
+// usa o texto dela — INCLUSIVE vazio (vazio é escolha: "esta rede sem
+// legenda"), a mesma regra do app.
+for (const id of ORDEM_REDES) {
+  const d = document.createElement('div');
+  d.className = 'leg-rede';
+  d.dataset.rede = id;
+  d.innerHTML = `<div class="topo">
+      <label><input type="checkbox" class="propria"> Legenda própria para <b>${_esc(RECEITAS[id].nome)}</b></label>
+      <span class="cont-rede"></span></div>
+    <textarea class="leg-propria" hidden placeholder="Texto só para ${_esc(RECEITAS[id].nome)} (até ${RECEITAS[id].legenda_max.toLocaleString('pt-BR')} caracteres)"></textarea>`;
+  $('legs').appendChild(d);
+}
+
+const _linhaLeg = id => document.querySelector(`.leg-rede[data-rede="${id}"]`);
+const marcadas = () => [...document.querySelectorAll('#redes input:checked')].map(c => c.value);
+
+/** A legenda que vai para a rede. */
+function legendaDe(id) {
+  const l = _linhaLeg(id);
+  return l.querySelector('.propria').checked ? l.querySelector('.leg-propria').value : $('leg').value;
+}
+
+function desenharLegendas() {
+  const ms = marcadas();
+  $('cont').textContent = `${$('leg').value.length} caracteres`;
+  for (const id of ORDEM_REDES) {
+    const l = _linhaLeg(id);
+    l.hidden = !ms.includes(id);
+    const propria = l.querySelector('.propria').checked;
+    l.querySelector('.leg-propria').hidden = !propria;
+    const n = legendaDe(id).length, max = RECEITAS[id].legenda_max;
+    const c = l.querySelector('.cont-rede');
+    c.textContent = `${n.toLocaleString('pt-BR')} / ${max.toLocaleString('pt-BR')}` + (propria ? ' · própria' : ' · comum');
+    c.className = 'cont-rede ' + (n > max ? 'er' : 'ok');
+  }
+}
+
+$('legs').addEventListener('change', ev => {
+  if (!ev.target.classList.contains('propria')) return;
+  const l = ev.target.closest('.leg-rede');
+  const ta = l.querySelector('.leg-propria');
+  // Abre já com a comum, para editar a partir dela em vez de redigitar.
+  if (ev.target.checked && !ta.value) ta.value = $('leg').value;
+  desenharLegendas();
+  if (ev.target.checked) ta.focus();
 });
+$('legs').addEventListener('input', desenharLegendas);
+$('leg').addEventListener('input', desenharLegendas);
+$('redes').addEventListener('change', desenharLegendas);
+desenharLegendas();
 
 // ── a leva ───────────────────────────────────────────────────────────────
 $('ir').addEventListener('click', async () => {
   const btn = $('ir');
   const p = persona();
-  const redes = [...document.querySelectorAll('#redes input:checked')].map(c => c.value);
-  const texto = $('leg').value;
+  const redes = marcadas();
   const url = $('url').value.trim();
   const local = $('arq').files[0] || null;
   $('log').textContent = '';
   if (!p) { log('Crie e escolha uma persona primeiro.', 'am'); return; }
   if (!redes.length) { log('Marque pelo menos uma rede.', 'am'); return; }
-  if (!texto && !url && !local) { log('Escreva uma legenda, cole um link ou escolha um arquivo.', 'am'); return; }
+  if (!redes.some(id => legendaDe(id)) && !url && !local) { log('Escreva uma legenda, cole um link ou escolha um arquivo.', 'am'); return; }
   let colaboradores;
   try { colaboradores = nomesDeColaboradores(p.colab); }
   catch (e) { log('✗ ' + e.message, 'er'); return; }
@@ -267,6 +313,15 @@ $('ir').addEventListener('click', async () => {
         resultados.push({ rede: id, semConta: true });
         continue;
       }
+      // Legenda acima do limite da rede: NÃO prepara. Cortar sozinho publicaria
+      // um texto que ninguém leu inteiro.
+      const texto = legendaDe(id);
+      const max = RECEITAS[id].legenda_max;
+      if (texto.length > max) {
+        log(`[${RECEITAS[id].nome}] pulada: a legenda tem ${texto.length} caracteres e o limite é ${max} — marque «Legenda própria» e encurte`, 'am');
+        resultados.push({ rede: id, longa: true });
+        continue;
+      }
       // Tipo de mídia que a receita não cobre: o motor pula — sem trocar a
       // sessão à toa antes.
       if (!RECEITAS[id].aceita.includes(tipo)) {
@@ -285,6 +340,7 @@ $('ir').addEventListener('click', async () => {
     for (const r of resultados) {
       const nome = RECEITAS[r.rede].nome;
       if (r.semConta) log(`${nome}: sem conta nesta persona`, 'am');
+      else if (r.longa) log(`${nome}: legenda acima do limite — não preparada`, 'am');
       else if (r.pulada) log(`${nome}: pulada (tipo de mídia)`, 'am');
       else if (r.erro) log(`${nome}: parou no meio — aba aberta`, 'er');
       else if (r.legendaOk === false) log(`${nome}: legenda NÃO conferiu — olhe a aba`, 'er');

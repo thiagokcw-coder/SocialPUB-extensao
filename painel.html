@@ -33,6 +33,10 @@
   .persona-barra select { flex:1; min-width:200px; background:var(--bg); color:var(--tx); border:1px solid var(--bd); border-radius:8px; padding:8px; font:inherit; }
   .persona-barra button { padding:6px 10px; font-size:12px; }
   .rede.sem { opacity:.55; }
+  .leg-rede { border-top:1px solid var(--bd); padding:8px 0; }
+  .leg-rede .topo { display:flex; justify-content:space-between; gap:8px; align-items:center; font-size:13px; }
+  .leg-rede textarea { min-height:70px; margin-top:6px; }
+  .cont-rede { font-size:12px; font-variant-numeric: tabular-nums; }
   .ok { color: var(--ok); } .er { color: var(--er); } .am { color: var(--am); }
 </style>
 </head>
@@ -73,9 +77,11 @@
   </div>
 
   <div class="caixa">
-    <label class="t" for="leg">Legenda</label>
+    <label class="t" for="leg">Legenda comum</label>
     <textarea id="leg" placeholder="O texto da publicação. Acentos, quebras de linha, #hashtags e @menções."></textarea>
     <div class="dica" id="cont">0 caracteres</div>
+    <div id="legs"></div>
+    <div class="dica">Cada rede tem o seu limite. Marque <b>Legenda própria</b> para escrever um texto só daquela rede; sem marcar, ela usa a comum. Rede cuja legenda passe do limite <b>não é preparada</b> — nada é cortado sem você ver.</div>
   </div>
 
   <div class="caixa">
