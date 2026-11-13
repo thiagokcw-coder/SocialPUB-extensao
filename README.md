@@ -104,6 +104,9 @@ Com **Publicar sozinho depois de preparar** ligado (fica guardado), cada rede é
 preparada, conferida e publicada — a mesma regra do app:
 
 - só publica se a **legenda conferiu** (o texto inteiro está no editor);
+- quando há mídia e a receita tem seletores de anexos, exige a **prévia no
+  compositor** na conferência e verifica de novo antes de publicar. Se faltar,
+  para com «a mídia não apareceu no post»;
 - **espera o botão habilitar** (até 3 min — enquanto o vídeo sobe ele fica
   desabilitado), fecha avisos por cima e clica;
 - TikTok: responde «Continuar publicando?» com **Publicar agora**;
@@ -192,6 +195,16 @@ senha.
 - Link `blob:` não serve. Acima de ~60 MB o painel avisa.
 
 ## Testes
+
+**0.8.8 — vídeo no X:** espera a janela de postagem abrir e usa apenas os
+campos dentro dela, sem recorrer ao compositor da linha do tempo. Depois de
+entregar o arquivo, espera até 60 segundos pelo contêiner de anexos e confere
+a prévia antes de considerar o post pronto.
+
+`python tests/test_x_midia.py` (Python com Playwright e Chrome instalado) testa
+janela atrasada, isolamento do compositor de trás, prévia vazia, perda da mídia
+antes de publicar e publicação com/sem mídia. É uma réplica com arquivo de
+teste sintético; não comprova o upload de um vídeo no X real.
 
 No repositório do SocialPUB: `tests/test_extensao.py` roda o motor inteiro com
 cliques e teclas reais contra réplicas do compositor de cada rede, preparando e

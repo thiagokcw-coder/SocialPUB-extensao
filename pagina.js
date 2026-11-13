@@ -195,6 +195,7 @@
       const bt = achar(publicar || [], true);
       return {
         texto: ed ? ed.el.innerText : null,
+        anexos: !!an,
         midia: an ? an.el.querySelectorAll('img, video').length : 0,
         botao: bt ? { existe: true, habilitado: !(bt.el.disabled || bt.el.getAttribute('aria-disabled') === 'true') }
                   : { existe: false },

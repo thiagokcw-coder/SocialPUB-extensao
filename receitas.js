@@ -20,13 +20,15 @@ const RECEITAS = {
     aceita: ['imagem', 'video', 'texto'],
     legenda_max: 280,
     medido_em: '2026-10-23 (app) · 2026-11-13 (extensão)',
-    // ⚠ `fileInput` e `tweetTextarea_0` aparecem DUAS vezes: o compositor do
-    // modal e o da linha do tempo atrás. O do diálogo vem primeiro.
-    arquivo: ['[role=dialog] input[data-testid="fileInput"]', 'input[data-testid="fileInput"]'],
-    legenda: ['[role=dialog] div[data-testid="tweetTextarea_0"]', 'div[data-testid="tweetTextarea_0"]'],
-    anexos: ['[role=dialog] [data-testid="attachments"]', '[data-testid="attachments"]'],
-    publicar: ['[role=dialog] button[data-testid="tweetButton"]', 'button[data-testid="tweetButton"]',
-               'button[data-testid="tweetButtonInline"]'],
+    // O compositor da linha do tempo também tem estes campos. Espere o
+    // diálogo abrir e nunca use os campos que ficam atrás dele.
+    abrir: { esperar: ['[role=dialog] div[data-testid="tweetTextarea_0"]'] },
+    arquivo: ['[role=dialog] input[data-testid="fileInput"]'],
+    legenda: ['[role=dialog] div[data-testid="tweetTextarea_0"]'],
+    anexos: ['[role=dialog] [data-testid="attachments"]'],
+    depois_do_arquivo: ['[role=dialog] [data-testid="attachments"]'],
+    espera_arquivo_s: 60,
+    publicar: ['[role=dialog] button[data-testid="tweetButton"]'],
   },
 
   instagram: {

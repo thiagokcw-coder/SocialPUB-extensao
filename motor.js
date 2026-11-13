@@ -136,8 +136,8 @@ async function prepararRede(redeId, midia, texto, opcoes) {
         log('o compositor já estava aberto');
       } else {
         const antes = await naAba('onde');
-        await clicar(R.abrir.clicar, ESPERA_PADRAO_MS, 'botão de criar');
-        if (R.abrir.menu) {
+        if (R.abrir.clicar) await clicar(R.abrir.clicar, ESPERA_PADRAO_MS, 'botão de criar');
+        if (R.abrir.clicar && R.abrir.menu) {
           // Diálogo OU submenu, o que vier primeiro (6s). Clicar «Postar» com o
           // diálogo já aberto seria clicar no que estiver atrás.
           const fim = Date.now() + 6000;
@@ -153,6 +153,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
         }
         const d = await naAba('localizar', R.abrir.esperar, 20000);
         if (!d || !d.ok) {
+          if (!R.abrir.clicar) throw new EtapaFalhou('o compositor não abriu — parei antes de anexar');
           // Clicar em "criar" não muda de página: se mudou, o clique foi parar
           // em outro lugar — e seguir clicando lá seria pior.
           const depois = await naAba('onde');
@@ -235,6 +236,9 @@ async function prepararRede(redeId, midia, texto, opcoes) {
           res.legendaOk ? 'ok' : 'er');
       if (!res.legendaOk) log('   o editor ficou com: ' + JSON.stringify(lido.texto), 'er');
     }
+    if (midia && R.anexos && R.anexos.length && (!lido.anexos || !lido.midia)) {
+      throw new EtapaFalhou('a mídia não apareceu no post');
+    }
     if (!opcoes.publicar) {
       if (lido.botao.existe) {
         log(lido.botao.habilitado ? '✓ pronto: botão de publicar habilitado — NÃO cliquei' : '? botão de publicar ainda desabilitado (o vídeo pode estar subindo)',
@@ -264,6 +268,11 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     }
     // aviso por cima do botão comeria o clique (TikTok, 10/11)
     if (R.dispensar && await naAba('existe', R.dispensar)) await dispensarAvisos(0);
+    // O upload pode falhar enquanto esperamos o botão habilitar.
+    if (midia && R.anexos && R.anexos.length) {
+      const atual = await naAba('ler', R.legenda, R.anexos, R.publicar);
+      if (!atual.anexos || !atual.midia) throw new EtapaFalhou('a mídia não apareceu no post');
+    }
     const clicado = await clicar(R.publicar, 5000, 'botão de publicar');
     res.clicou = true;
     log('cliquei em publicar …');
