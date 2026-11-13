@@ -164,11 +164,30 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     if (R.perfil) {
       const nome = String(opcoes.facebookPagina || '').trim();
       if (!nome) throw new EtapaFalhou('Facebook não está como a página (configure a página na persona)');
-      await clicar(R.perfil.menu, ESPERA_PADRAO_MS, 'menu do perfil');
-      await clicar(R.perfil.todos, 10000, 'ver todos os perfis');
-      await clicar(_motorTrocar(R.perfil.pagina, nome), 10000, 'página do Facebook');
-      await naAba('sumiu', R.perfil.todos, 10000);
-      await new Promise(r => setTimeout(r, 1500));
+      const url = String(opcoes.facebookPaginaUrl || '').trim();
+      try {
+        await clicar(R.perfil.menu, url ? 15000 : ESPERA_PADRAO_MS, 'menu do perfil');
+        await clicar(R.perfil.todos, 10000, 'ver todos os perfis');
+        await clicar(_motorTrocar(R.perfil.pagina, nome), 10000, 'página do Facebook');
+        await naAba('sumiu', R.perfil.todos, 10000);
+        await new Promise(r => setTimeout(r, 1500));
+      } catch (e) {
+        if (!(e instanceof EtapaFalhou) || !/^https:\/\/([a-z0-9-]+\.)?facebook\.com\//i.test(url)) throw e;
+        // Plano B: abrir a página direto e usar o compositor dela. O autor
+        // continua conferido no compositor (conferirPaginaFacebook).
+        log(`${e.message} — abrindo a página direto: ${url}`, 'am');
+        await new Promise(r => chrome.tabs.update(tabId, { url }, () => r()));
+        await new Promise(r => setTimeout(r, 1000));
+        const fimC = Date.now() + 30000;
+        while (Date.now() < fimC && (await chrome.tabs.get(tabId)).status !== 'complete') await new Promise(r => setTimeout(r, 300));
+        for (let i = 0; i < 2; i++) {
+          const s = await naAba('localizar', R.perfil.alternar, i ? 4000 : 8000);
+          if (!s || !s.ok) break;
+          await clicar(R.perfil.alternar, 2000, 'mudar para a página');
+          log(`cliquei «${s.texto}» para agir como a página`);
+          await new Promise(r => setTimeout(r, 2500));
+        }
+      }
     }
     // ── 1. abrir o compositor (só onde ele é um modal) ────────────────────
     if (R.abrir) {
@@ -216,12 +235,14 @@ async function prepararRede(redeId, midia, texto, opcoes) {
         const { root } = await cmd('DOM.getDocument', {});
         const { nodeId } = await cmd('DOM.querySelector', { nodeId: root.nodeId, selector: R.arquivo[campo.idx] });
         if (!nodeId) throw new EtapaFalhou('o campo de arquivo saiu da tela antes da entrega');
+        // O spArquivoNativo só devolve o caminho com o download «complete» e o
+        // tamanho igual ao da mídia. Depois da entrega NÃO dá para conferir pelo
+        // input.files: o X esvazia o campo assim que consome o arquivo (13/11).
+        // Confere pelo compositor: o anexo aparece e o vigia acompanha o envio.
         await cmd('DOM.setFileInputFiles', { nodeId, files: [caminho] });
-        const info = await naAba('arquivoInfo', R.arquivo);
-        if (!info || !info.tamanho || (midia.tamanho != null && info.tamanho !== midia.tamanho)) {
-          throw new EtapaFalhou('o arquivo nativo não chegou inteiro ao compositor');
-        }
-        log(`✓ arquivo nativo entregue (${info.tamanho} bytes)`, 'ok');
+        const anexo = await naAba('localizar', R.anexos || R.depois_do_arquivo, 20000);
+        if (!anexo || !anexo.ok) throw new EtapaFalhou('o arquivo nativo foi entregue e o anexo não apareceu no compositor em 20s');
+        log(`✓ arquivo nativo entregue (${midia.tamanho != null ? midia.tamanho + ' bytes' : caminho}) — o anexo apareceu no compositor`, 'ok');
         a = { ok: true };
       } else {
         a = await naAba('anexar', midia.b64, midia.nome, midia.tipo, R.arquivo, ESPERA_PADRAO_MS);

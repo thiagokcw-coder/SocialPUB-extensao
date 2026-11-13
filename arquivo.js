@@ -61,6 +61,14 @@ async function spLerArquivo(arquivo) {
  * computador DESTE Chrome (também funciona quando ele roda na nuvem).
  * Não apaga a cópia: o site pode continuar lendo-a depois de preparar. */
 async function spArquivoNativo(midia) {
+  // Cópia já feita (outra rede da mesma leva): confere de novo no chrome.downloads
+  // — o arquivo pode ter sido apagado ou ainda estar sendo escrito.
+  if (midia.caminho && midia.downloadId != null && chrome.downloads) {
+    const [d] = await chrome.downloads.search({ id: midia.downloadId });
+    if (d && d.state === 'complete' && d.exists !== false && d.filename === midia.caminho
+        && (midia.tamanho == null || d.fileSize === midia.tamanho)) return midia.caminho;
+    midia.caminho = null; midia.downloadId = null;   // refaz a cópia
+  }
   if (midia.caminho) return midia.caminho;
   if (!chrome.downloads) throw new Error('recarregue a extensão e permita downloads para anexar o arquivo nativo no X');
   const bytes = Uint8Array.from(atob(midia.b64), c => c.charCodeAt(0));
@@ -77,8 +85,12 @@ async function spArquivoNativo(midia) {
       const [d] = await chrome.downloads.search({ id });
       if (!d || d.state === 'interrupted') throw new Error('a cópia local da mídia foi interrompida');
       if (d.state === 'complete') {
-        if (!d.filename || d.fileSize !== bytes.length) throw new Error('a cópia local da mídia não confere com o arquivo original');
+        const esperado = midia.tamanho != null ? midia.tamanho : bytes.length;
+        if (!d.filename || d.fileSize !== esperado || d.fileSize !== bytes.length) {
+          throw new Error(`a cópia local da mídia não confere com o arquivo original (${d.fileSize} de ${esperado} bytes)`);
+        }
         midia.caminho = d.filename;
+        midia.downloadId = id;
         return midia.caminho;
       }
       await new Promise(r => setTimeout(r, 250));

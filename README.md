@@ -197,6 +197,15 @@ senha.
 
 ## Testes
 
+**0.8.11 — X confere pelo compositor; Facebook acha «Conta, seu perfil»:** no
+X, a cópia em `Downloads/SocialPUB/` só é entregue com o download «complete» e
+o tamanho igual ao da mídia; depois da entrega a conferência é pelo anexo no
+compositor (o X esvazia o campo de arquivo ao consumi-lo) — falha só se o anexo
+não aparecer em 20 s. No Facebook, o menu do perfil casa também
+«Conta, seu perfil» e variações; se ele não aparecer, a extensão abre o
+**endereço da página** (campo novo, opcional, na persona), clica «Mudar agora»
+se aparecer e usa o compositor da página, ainda conferindo o autor.
+
 **0.8.10 — upload nativo no X e página no Facebook:** no X, o vídeo é salvo
 em `Downloads/SocialPUB/` e entregue ao campo de arquivo como arquivo de verdade
 (permissão nova: *downloads*); a extensão acompanha o «Uploading (n%)» e para

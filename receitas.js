@@ -164,14 +164,24 @@ const RECEITAS = {
     legenda_max: 63206,
     medido_em: '2026-10-23 (app)',
     perfil: {
-      menu: ['Your profile', 'Seu perfil', 'O teu perfil', 'Account', 'Conta'].flatMap(t => [
-        `[role="banner"] [role="button"][aria-label="${t}"]`, `[role="banner"] button[aria-label="${t}"]`]),
+      // 13/11 (pt-BR): o botão real é aria-label «Conta, seu perfil». Prefixo e
+      // trecho, no banner primeiro e depois em qualquer lugar da tela.
+      menu: ['[aria-label="Conta, seu perfil"]', '[aria-label^="Conta"]', '[aria-label*="seu perfil"]',
+             '[aria-label*="Seu perfil"]', '[aria-label*="Your profile"]', '[aria-label="Account"]',
+             '[aria-label*="O teu perfil"]'].flatMap(a => [
+        `[role="banner"] [role="button"]${a}`, `[role="banner"] button${a}`]).concat(
+        ['[aria-label="Conta, seu perfil"]', '[aria-label^="Conta"]', '[aria-label*="seu perfil"]', '[aria-label*="Your profile"]']
+          .flatMap(a => [`[role="button"]${a}`, `button${a}`])),
+      // Plano B: abrir a página direto. Quem administra e está como perfil
+      // pessoal vê «Mudar agora»/«Switch now» para agir como ela.
+      alternar: ['Mudar agora', 'Alternar agora', 'Switch now', 'Switch Now', 'Mudar', 'Alternar', 'Switch']
+        .map(t => ({ css: '[role="main"] [role="button"], [role="main"] button, [role="dialog"] [role="button"], [role="dialog"] button', texto: t })),
       todos: ['See all profiles', 'Ver todos os perfis'].map(t => ({ css: '[role="menu"] [role="button"], [role="menuitem"], [role="dialog"] [role="button"], [role="dialog"] button', texto: t })),
       pagina: [{ css: '[role="dialog"] [role="button"], [role="dialog"] [role="radio"], [role="menu"] [role="menuitem"]', texto: '{u}' },
                { css: '[role="dialog"] [role="button"], [role="dialog"] [role="radio"], [role="menu"] [role="menuitem"]', filhoTexto: '{u}' }],
     },
     abrir: {
-      clicar: ["What's on your mind?", 'No que você está pensando?', 'Em que estás a pensar?', 'Create post', 'Criar publicação'].map(t => ({ css: '[role="main"] [role="button"], [role="main"] button', contem: t })),
+      clicar: ["What's on your mind?", 'No que você está pensando?', 'Em que estás a pensar?', 'Create post', 'Criar publicação', 'Criar post', 'Escreva algo', 'Write something'].map(t => ({ css: '[role="main"] [role="button"], [role="main"] button', contem: t })),
       esperar: ['[role="dialog"] [role="textbox"]', '[role="dialog"] [contenteditable="true"]'],
     },
     arquivo: ['[role="dialog"] input[type="file"][accept*="video"]', '[role="dialog"] input[type="file"][accept*="image"]', '[role="dialog"] input[type="file"]'],
