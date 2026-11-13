@@ -25,9 +25,10 @@ async function _spTecla(cmd, key, code, vk, modifiers, text) {
 }
 
 async function _spCaractere(cmd, c) {
+  // Sem pausa: a ida e volta de cada comando pela depuração já dá o ritmo. A
+  // pausa de 25ms por letra deixava as hashtags «extremamente lentas» (13/11).
   await cmd('Input.dispatchKeyEvent', { type: 'keyDown', key: c, text: c, unmodifiedText: c });
   await cmd('Input.dispatchKeyEvent', { type: 'keyUp', key: c });
-  await _spPausa(25);
 }
 
 /** Clique de mouse REAL no ponto (x, y) da janela, em pixels CSS. As redes
@@ -59,11 +60,15 @@ async function spDigitar(cmd, texto, pausaMs) {
 
 /** Escreve `texto` onde estiver o foco.
  *
- * Mesma regra do SocialPUB (`_inserir_linha`): texto corrido entra de uma vez
- * (`Input.insertText`), e hashtag/menção vai tecla a tecla com um ESPAÇO
- * depois — o seletor de hashtag engole o que entra em bloco, e o espaço
- * confirma a hashtag como foi escrita (um Enter escolheria a sugestão). */
-async function spEscreverTeclas(cmd, texto) {
+ * Texto corrido entra de uma vez (`Input.insertText`). Cada #hashtag/@menção
+ * entra seguida de um ESPAÇO digitado: o espaço confirma a hashtag como foi
+ * escrita (um Enter escolheria a sugestão destacada).
+ *
+ * `porTecla`: a hashtag vai LETRA A LETRA. Só onde foi medido que precisa — o
+ * TikTok (10/11), cujo seletor de hashtag engoliu o que entrou em bloco. Nas
+ * outras redes ela entra inteira: letra a letra em todas deixava a escrita
+ * «extremamente lenta» (13/11). */
+async function spEscreverTeclas(cmd, texto, porTecla) {
   await spLimparCampo(cmd);      // limpa SEMPRE (o TikTok pré-preenche com o nome do arquivo)
   const linhas = String(texto).split('\n');
   for (let i = 0; i < linhas.length; i++) {
@@ -74,7 +79,8 @@ async function spEscreverTeclas(cmd, texto) {
       let p = partes[j];
       if (!p) continue;
       if (j % 2 === 1) {                                  // #hashtag ou @menção
-        for (const c of p) await _spCaractere(cmd, c);
+        if (porTecla) { for (const c of p) await _spCaractere(cmd, c); }
+        else await cmd('Input.insertText', { text: p });
         await _spCaractere(cmd, ' ');
         depoisDeToken = true;
       } else {

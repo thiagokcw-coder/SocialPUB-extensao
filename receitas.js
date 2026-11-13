@@ -99,6 +99,9 @@ const RECEITAS = {
     dispensar_espera_s: 4,
     // A legenda vem PRÉ-PREENCHIDA com o nome do arquivo: a escrita limpa antes.
     legenda: ['div.caption-editor [contenteditable="true"]', 'div.caption-editor'],
+    // O seletor de hashtag do TikTok ENGOLIU hashtags inseridas em bloco
+    // (10/11, no app): aqui elas vão letra a letra. Só aqui.
+    hashtag_por_tecla: true,
     publicar: ['button[data-e2e="post_video_button"]'],
     // Texto exato e preferindo dentro do diálogo: a mesma tela tem o rádio
     // «Agora» em "Quando publicar".

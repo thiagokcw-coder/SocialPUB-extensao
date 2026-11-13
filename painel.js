@@ -132,11 +132,13 @@ function desenharContas() {
 }
 
 function _relatarEntrada(div, r, faltando) {
-  const recus = r.recusados.length ? ` · ${r.recusados.length} recusado(s): ${r.recusados.map(x => x.name).join(', ')}` : '';
+  const recus = r.recusados.length ? ` · ${r.recusados.length} recusado(s): ${r.recusados.map(x => x.name).join(', ')} (${r.recusados[0].motivo})` : '';
   const falta = faltando && faltando.length
     ? `<div class="am">⚠ não vieram ${_esc(faltando.join(', '))} — normalmente são eles que autenticam; exporte de novo na página logada</div>` : '';
   div.querySelector('.res').innerHTML =
-    `<span class="${r.recusados.length ? 'am' : 'ok'}">✓ ${r.gravados} cookie(s) gravado(s) no navegador (${r.apagados} da sessão anterior apagados)${_esc(recus)} — clique em Abrir para conferir</span>` + falta;
+    (r.entrou
+      ? `<span class="${r.recusados.length ? 'am' : 'ok'}">✓ ${r.gravados} cookie(s) gravado(s) no navegador (${r.apagados} da sessão anterior apagados)${_esc(recus)} — clique em Abrir para conferir</span>`
+      : `<span class="er">✗ não entrou: ${r.gravados} gravado(s)${_esc(recus)} — a sessão anterior ficou como estava</span>`) + falta;
 }
 
 $('contas').addEventListener('click', async ev => {
@@ -383,8 +385,16 @@ $('ir').addEventListener('click', async () => {
         continue;
       }
       const e = await spEntrar(id, conta.cookies);
+      if (!e.entrou) {
+        // Sem a sessão, a rede abre DESLOGADA e falha lá na frente com um erro
+        // que não aponta a causa («não achei o botão de criar»). Para aqui.
+        log(`[${RECEITAS[id].nome}] ✗ não consegui entrar na conta: ${e.gravados} gravado(s), ${e.recusados.length} recusado(s)`
+            + (e.recusados[0] ? ` — ${e.recusados[0].name}: ${e.recusados[0].motivo}` : '') + ' — a sessão anterior ficou como estava', 'er');
+        resultados.push({ rede: id, semSessao: true });
+        continue;
+      }
       log(`[${RECEITAS[id].nome}] sessão de ${conta.usuario ? '@' + conta.usuario : p.nome} no navegador (${e.gravados} cookie(s))`
-          + (e.recusados.length ? ` · ${e.recusados.length} recusado(s)` : ''), e.recusados.length ? 'am' : 'ok');
+          + (e.recusados.length ? ` · ${e.recusados.length} recusado(s) que não autenticam` : ''), e.recusados.length ? 'am' : 'ok');
       resultados.push(await prepararRede(id, midia, texto,
         { publicar, colaboradores: id === 'instagram' ? colaboradores : [], log }));
     }
@@ -394,6 +404,7 @@ $('ir').addEventListener('click', async () => {
     for (const r of resultados) {
       const nome = RECEITAS[r.rede].nome;
       if (r.semConta) log(`${nome}: sem conta nesta persona`, 'am');
+      else if (r.semSessao) log(`${nome}: não entrou na conta — nada foi feito nela`, 'er');
       else if (r.longa) log(`${nome}: legenda acima do limite — não preparada`, 'am');
       else if (r.pulada) log(`${nome}: pulada (tipo de mídia)`, 'am');
       else if (r.erro) log(`${nome}: parou no meio — aba aberta`, 'er');

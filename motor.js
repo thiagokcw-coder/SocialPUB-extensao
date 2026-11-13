@@ -29,13 +29,23 @@ async function _motorAbrirAba(url) {
 /** Roda `SP[metodo](...args)` dentro da aba, injetando o pagina.js antes
  * (navegação de verdade apaga o que foi injetado; reinjetar é barato). */
 async function _motorNaAba(tabId, metodo, args) {
-  await chrome.scripting.executeScript({ target: { tabId }, files: ['pagina.js'] });
-  const [r] = await chrome.scripting.executeScript({
-    target: { tabId },
-    func: (m, a) => self.SP[m](...a),
-    args: [metodo, args || []],
-  });
-  return r ? r.result : null;
+  // A página pode ser TROCADA no meio de uma leitura (o Threads, 13/11: «Frame
+  // with ID 0 was removed»). É passageiro: espera e tenta de novo, até 3 vezes.
+  for (let tentativa = 1; ; tentativa++) {
+    try {
+      await chrome.scripting.executeScript({ target: { tabId }, files: ['pagina.js'] });
+      const [r] = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: (m, a) => self.SP[m](...a),
+        args: [metodo, args || []],
+      });
+      return r ? r.result : null;
+    } catch (e) {
+      const msg = String(e && e.message ? e.message : e);
+      if (tentativa >= 3 || !/frame|was removed|navigat|context|showing error page/i.test(msg)) throw e;
+      await new Promise(r => setTimeout(r, 1500));
+    }
+  }
 }
 
 function _motorTrocar(cands, u) {
@@ -64,7 +74,24 @@ async function prepararRede(redeId, midia, texto, opcoes) {
   const tabId = await _motorAbrirAba(R.url);
   const alvo = { tabId };
   await chrome.debugger.attach(alvo, '1.3');
-  const cmd = (m, p) => chrome.debugger.sendCommand(alvo, m, p);
+  // A depuração pode CAIR no meio (TikTok, 13/11: «Debugger is not attached»,
+  // durante a espera do upload). Religa e repete o comando — a não ser que
+  // tenha sido você, no «Cancelar» da faixa amarela: aí para, com o motivo.
+  let soltou = null;
+  const aoSoltar = (fonte, motivo) => { if (fonte.tabId === tabId) soltou = motivo; };
+  chrome.debugger.onDetach && chrome.debugger.onDetach.addListener(aoSoltar);
+  const cmd = async (m, p) => {
+    try {
+      return await chrome.debugger.sendCommand(alvo, m, p);
+    } catch (e) {
+      if (!/not attached/i.test(String(e && e.message ? e.message : e))) throw e;
+      if (soltou === 'canceled_by_user') throw new EtapaFalhou('a depuração foi cancelada na faixa amarela — parei');
+      log(`a depuração caiu${soltou ? ' (' + soltou + ')' : ''} — religando`, 'am');
+      soltou = null;
+      await chrome.debugger.attach(alvo, '1.3');
+      return await chrome.debugger.sendCommand(alvo, m, p);
+    }
+  };
   const naAba = (m, ...a) => _motorNaAba(tabId, m, a);
 
   async function clicar(cands, prazoMs, oQue) {
@@ -161,7 +188,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
       if (R.dispensar && await naAba('existe', R.dispensar)) await dispensarAvisos(0);
       await clicar(R.legenda, ESPERA_PADRAO_MS, 'campo da legenda');
       await naAba('focar', R.legenda, 2000);
-      await spEscreverTeclas(cmd, texto);
+      await spEscreverTeclas(cmd, texto, !!R.hashtag_por_tecla);
       log('✓ legenda escrita', 'ok');
     }
 
@@ -219,7 +246,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     }
     // aviso por cima do botão comeria o clique (TikTok, 10/11)
     if (R.dispensar && await naAba('existe', R.dispensar)) await dispensarAvisos(0);
-    await clicar(R.publicar, 5000, 'botão de publicar');
+    const clicado = await clicar(R.publicar, 5000, 'botão de publicar');
     res.clicou = true;
     log('cliquei em publicar …');
 
@@ -241,7 +268,11 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     // CONFIRMAR em vez de afirmar: nas redes medidas o botão (ou o diálogo em
     // volta) SOME quando a publicação é aceita. Não sumiu = "incerto" — a pessoa
     // confere antes de publicar de novo (publicar duas vezes é o risco aqui).
-    res.publicou = await naAba('sumiu', R.publicar, 30000);
+    // Só o botão QUE FOI CLICADO: no X, quando o modal fecha, aparece o
+    // compositor da linha do tempo atrás dele, com um botão de publicar que
+    // também casa a receita — e a leva dizia "continua na tela" de um post que
+    // tinha saído (13/11). É o `sel` que o app sempre usou.
+    res.publicou = await naAba('sumiu', [R.publicar[clicado.idx]], 30000);
     log(res.publicou ? '✓ PUBLICADO: o botão de publicar saiu da tela'
                      : '? cliquei em publicar e o botão CONTINUA na tela depois de 30s — CONFIRA na aba antes de publicar de novo',
         res.publicou ? 'ok' : 'am');
@@ -250,6 +281,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     log('✗ ' + (e instanceof EtapaFalhou ? e.message : 'erro: ' + (e && e.message ? e.message : e)) + ' — a aba ficou aberta', 'er');
     return { rede: redeId, erro: String(e && e.message ? e.message : e) };
   } finally {
+    chrome.debugger.onDetach && chrome.debugger.onDetach.removeListener(aoSoltar);
     try { await chrome.debugger.detach(alvo); } catch (e) { /* já soltou */ }
   }
 }

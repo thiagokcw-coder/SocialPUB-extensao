@@ -78,27 +78,47 @@ function spParaChrome(c, rede) {
   return d;
 }
 
-/** Apaga a sessão da rede no navegador e grava a da conta. Um cookie recusado
- * não leva os outros junto: é gravado um a um e o recusado é NOMEADO. */
+/** Troca a sessão da rede no navegador pela da conta.
+ *
+ * ⚠ GRAVA PRIMEIRO, APAGA DEPOIS. A 0.4.0 apagava a sessão anterior e só então
+ * gravava — e quando o Chrome recusou os cookies (faltava permissão para
+ * `instagram.com` sem o www, 13/11), a rede ficou DESLOGADA: o Instagram abriu
+ * na tela de login e o «Criar» não existia. Agora: grava a conta nova (os
+ * cookies de mesmo nome são sobrescritos) e só apaga as SOBRAS da sessão
+ * anterior se nada foi recusado. Com recusa, não apaga nada.
+ *
+ * Um cookie recusado não leva os outros junto: é gravado um a um e NOMEADO. */
 async function spEntrar(rede, cookies) {
   const cfg = SP_COOKIES[rede];
-  let apagados = 0;
-  for (const dom of cfg.dominios) {
-    for (const c of await chrome.cookies.getAll({ domain: dom })) {
-      const host = c.domain.replace(/^\./, '');
-      await chrome.cookies.remove({ url: (c.secure ? 'https://' : 'http://') + host + c.path, name: c.name, storeId: c.storeId });
-      apagados++;
-    }
-  }
   const recusados = [];
+  const novos = new Set();
   let gravados = 0;
   for (const c of cookies) {
+    const d = spParaChrome(c, rede);
     try {
-      const r = await chrome.cookies.set(spParaChrome(c, rede));
-      if (r) gravados++; else recusados.push({ name: c.name, motivo: 'o navegador recusou' });
+      const r = await chrome.cookies.set(d);
+      if (r) {
+        gravados++;
+        novos.add(r.name + '|' + String(r.domain || '').replace(/^\./, '') + '|' + r.path);
+      } else {
+        recusados.push({ name: c.name, motivo: 'o navegador recusou' });
+      }
     } catch (e) {
       recusados.push({ name: c.name, motivo: String(e && e.message ? e.message : e).slice(0, 110) });
     }
   }
-  return { apagados, gravados, recusados };
+  let apagados = 0;
+  if (!recusados.length) {
+    for (const dom of cfg.dominios) {
+      for (const c of await chrome.cookies.getAll({ domain: dom })) {
+        const host = c.domain.replace(/^\./, '');
+        if (novos.has(c.name + '|' + host + '|' + c.path)) continue;
+        await chrome.cookies.remove({ url: (c.secure ? 'https://' : 'http://') + host + c.path, name: c.name, storeId: c.storeId });
+        apagados++;
+      }
+    }
+  }
+  const nomesRecusados = new Set(recusados.map(r => r.name));
+  // A conta só "entrou" se gravou algo e NENHUM cookie que autentica foi recusado.
+  return { apagados, gravados, recusados, entrou: gravados > 0 && !cfg.chaves.some(k => nomesRecusados.has(k)) };
 }

@@ -51,6 +51,9 @@ da outra persona. Os **colaboradores do Instagram** também são por persona.
 - Avisa se faltarem os cookies que autenticam (`auth_token`/`ct0` no X,
   `sessionid` no Instagram, `c_user`/`xs` no Facebook…).
 - O Threads troca só a sessão do Threads — não desloga o Instagram.
+- A conta nova é gravada **antes** de qualquer coisa ser apagada. Se o Chrome
+  recusar os cookies que autenticam, a sessão anterior fica como estava e a rede
+  **não é preparada** (em vez de abrir deslogada e falhar lá na frente).
 - ⚠ Os cookies ficam guardados **só nesta extensão, neste navegador**, e dão
   acesso total às contas. Nunca vão para o GitHub. Não compartilhe o perfil do
   navegador.
