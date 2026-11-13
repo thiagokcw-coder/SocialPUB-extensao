@@ -122,3 +122,65 @@ async function spEntrar(rede, cookies) {
   // A conta só "entrou" se gravou algo e NENHUM cookie que autentica foi recusado.
   return { apagados, gravados, recusados, entrou: gravados > 0 && !cfg.chaves.some(k => nomesRecusados.has(k)) };
 }
+
+// ── Entrar pela TELA (sem Cookie-Editor) ─────────────────────────────────
+//
+// A pessoa entra na rede com usuário e senha, neste navegador, e a extensão
+// guarda a sessão que ficou nele. A SENHA não passa pela extensão: ela é
+// digitada na página da rede e não fica guardada em lugar nenhum.
+
+/** Página de login de cada rede. */
+const SP_LOGIN = {
+  x:         'https://x.com/i/flow/login',
+  instagram: 'https://www.instagram.com/accounts/login/',
+  tiktok:    'https://www.tiktok.com/login',
+  threads:   'https://www.threads.com/login',
+  facebook:  'https://www.facebook.com/login/',
+};
+
+/** Tira do NAVEGADOR a sessão da rede, sem avisar o site — para a página de
+ * login aparecer em vez da conta que estava aberta.
+ *
+ * ⚠ NÃO é «Sair». Clicar em «Sair» na rede encerra a sessão NO SERVIDOR, e a
+ * persona que tinha essa sessão guardada perderia a conta. Apagar os cookies
+ * daqui só esquece a sessão neste navegador: guardada, ela continua valendo. */
+async function spSairLocal(rede) {
+  const cfg = SP_COOKIES[rede];
+  let n = 0;
+  for (const dom of cfg.dominios) {
+    for (const c of await chrome.cookies.getAll({ domain: dom })) {
+      const host = c.domain.replace(/^\./, '');
+      await chrome.cookies.remove({ url: (c.secure ? 'https://' : 'http://') + host + c.path, name: c.name, storeId: c.storeId });
+      n++;
+    }
+  }
+  return n;
+}
+
+/** A sessão da rede que está NO NAVEGADOR agora, no mesmo formato do que vem
+ * do Cookie-Editor (o `spEntrar` grava os dois do mesmo jeito).
+ * Sem nenhum cookie que autentica = não está logado: recusa, para não guardar
+ * uma «conta» que é só a página de login. */
+async function spCapturarSessao(rede) {
+  const cfg = SP_COOKIES[rede];
+  const vistos = new Set();
+  const cookies = [];
+  for (const dom of cfg.dominios) {
+    for (const c of await chrome.cookies.getAll({ domain: dom })) {
+      const k = c.name + '|' + c.domain + '|' + c.path;
+      if (vistos.has(k)) continue;
+      vistos.add(k);
+      const o = { domain: c.domain, name: c.name, value: c.value, path: c.path || '/',
+                  secure: !!c.secure, httpOnly: !!c.httpOnly, sameSite: c.sameSite || 'unspecified',
+                  hostOnly: !!c.hostOnly, session: !!c.session };
+      if (c.expirationDate) o.expirationDate = c.expirationDate;
+      cookies.push(o);
+    }
+  }
+  const nomes = new Set(cookies.map(c => c.name));
+  const faltando = cfg.chaves.filter(k => !nomes.has(k));
+  if (faltando.length === cfg.chaves.length) {
+    throw new Error(`este navegador não está logado em ${cfg.dominios[0]} (não há ${cfg.chaves.join(' nem ')}) — clique em «Entrar pela tela», entre na conta e depois salve`);
+  }
+  return { cookies, faltando };
+}

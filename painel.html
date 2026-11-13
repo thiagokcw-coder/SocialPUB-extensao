@@ -71,9 +71,19 @@
 
   <details class="caixa" id="contas-caixa">
     <summary><b>Contas da persona</b> <span class="dica" id="contas-resumo"></span></summary>
-    <div class="dica" style="margin:8px 0 6px">Uma conta por rede, por persona. A conta entra <b>sem senha</b>: você copia a sessão de um navegador onde já está logado e cola aqui.</div>
+    <div class="dica" style="margin:8px 0 6px">Uma conta por rede, por persona. Dois jeitos de guardar a conta: <b>entrar pela tela</b> (usuário e senha, aqui) ou <b>colar os cookies</b> de um navegador onde ela já está logada.</div>
+    <div class="dica"><b>Cadastre uma vez.</b> Depois, escolha a persona e prepare a publicação: a sessão guardada é reutilizada automaticamente. Use <b>Entrar de novo</b> para restaurá-la no navegador sem abrir o login. <b>Entrar pela tela</b> é para cadastrar ou renovar uma sessão; a rede ainda pode pedir verificação se ela deixar de ser válida.</div>
     <details class="como" open>
       <summary><b>Como adicionar uma conta</b> (2 minutos por rede)</summary>
+      <p style="margin:8px 0 4px"><b>Jeito 1 — entrar pela tela</b> (sem instalar nada)</p>
+      <ol>
+        <li>Escolha a <b>persona</b> no topo e abra <b>Contas da persona</b>.</li>
+        <li>Na rede, clique <b>Entrar pela tela</b>. A página de login da rede abre numa aba nova.</li>
+        <li>Entre com <b>usuário e senha</b> da conta (e o código, se a rede pedir). A senha fica na página da rede — a extensão não vê nem guarda.</li>
+        <li>Volte a esta aba, escreva o @ (só para lembrar) e clique <b>Salvar a sessão do navegador</b>. Deve aparecer <span class="ok">✓ sessão guardada</span>.</li>
+        <li>Para a outra persona, repita: o <b>Entrar pela tela</b> tira daqui a sessão anterior sem encerrá-la — ela continua guardada na persona dela.</li>
+      </ol>
+      <p style="margin:8px 0 4px"><b>Jeito 2 — colar os cookies</b> (a conta já está logada em outro navegador)</p>
       <ol>
         <li>No navegador onde você <b>já está logado</b> na conta (o seu Chrome, por exemplo), instale o
           <a href="https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm" target="_blank" rel="noopener"><b>Cookie-Editor</b></a> (Chrome Web Store, grátis).</li>
@@ -82,7 +92,7 @@
         <li>Aqui: escolha a <b>persona</b> no topo, abra <b>Contas da persona</b>, cole no campo da rede, escreva o @ (só para lembrar) e clique <b>Salvar e entrar</b>.</li>
         <li>Confira: deve aparecer <span class="ok">✓ … cookie(s) gravado(s)</span>. Clique em <b>Abrir</b> e veja a rede logada. Se avisar que faltaram cookies (<code>sessionid</code>, <code>auth_token</code>…), exporte de novo com a página logada.</li>
       </ol>
-      <div class="dica">⚠ Depois de exportar, <b>não clique em «Sair»</b> nessa conta no outro navegador: sair encerra a sessão que você copiou, e a conta cai aqui também. Se ela cair (senha trocada, «sair de todos os dispositivos»), é só exportar e colar de novo.</div>
+      <div class="dica">⚠ <b>Nunca clique em «Sair»</b> numa conta guardada — nem aqui, nem no outro navegador: sair encerra a sessão guardada, e a conta cai na persona também. Para usar uma conta já cadastrada, escolha a persona e clique <b>Entrar de novo</b>, ou prepare a publicação. Se a sessão perder a validade, use <b>Entrar pela tela</b> e salve a nova sessão.</div>
       <div class="dica">⚠ Os cookies dão acesso total à conta. Ficam guardados <b>só nesta extensão, neste navegador</b> — não mande para ninguém nem compartilhe o perfil do navegador.</div>
     </details>
     <div id="contas"></div>

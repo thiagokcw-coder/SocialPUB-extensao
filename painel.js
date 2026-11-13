@@ -134,6 +134,11 @@ function desenharContas() {
     return `<div class="conta" data-rede="${id}">
       <div class="conta-topo"><b>${_esc(RECEITAS[id].nome)}</b> ${estado}</div>
       <input type="text" class="usuario" placeholder="@ da conta (só para você lembrar)" value="${c ? _esc(c.usuario) : ''}" style="margin-top:6px">
+      <div class="acoes">
+        <button class="sec tela">Entrar pela tela</button>
+        <button class="capturar">Salvar a sessão do navegador</button>
+      </div>
+      <div class="dica" style="margin-top:6px">ou, com o Cookie-Editor, cole os cookies:</div>
       <textarea class="ck" placeholder='[{"domain":".${SP_COOKIES[id].dominios[0]}","name":"…","value":"…"}] — exportado pelo Cookie-Editor'></textarea>
       <div class="acoes">
         <button class="salvar">Salvar e entrar</button>
@@ -175,6 +180,34 @@ $('contas').addEventListener('click', async ev => {
     }
     if (ev.target.classList.contains('entrar')) {
       _relatarEntrada(div, await spEntrar(rede, p.contas[rede].cookies), null);
+      return;
+    }
+    if (ev.target.classList.contains('tela')) {
+      const nome = RECEITAS[rede].nome;
+      if (!confirm(`Entrar no ${nome} pela tela, para «${p.nome}».\n\n`
+        + `A sessão do ${nome} que está neste navegador sai DAQUI (não é «Sair»: guardada em outra persona, ela continua valendo). `
+        + `Se ela não estiver guardada em nenhuma persona, será preciso entrar de novo nela.\n\n`
+        + `Na página que vai abrir, entre com usuário e senha. Depois volte aqui e clique «Salvar a sessão do navegador».`)) return;
+      const n = await spSairLocal(rede);
+      await chrome.tabs.create({ url: SP_LOGIN[rede], active: true });
+      const threads = rede === 'threads'
+        ? ' O Threads entra pela conta do Instagram: se oferecer «Continuar como @…» de OUTRA conta, escolha entrar com usuário e senha.' : '';
+      res.innerHTML = `<span class="am">→ página de login do ${_esc(nome)} aberta (${n} cookie(s) da sessão anterior tirados deste navegador). `
+        + `Entre na conta de «${_esc(p.nome)}», volte aqui e clique «Salvar a sessão do navegador».${_esc(threads)}</span>`;
+      return;
+    }
+    if (ev.target.classList.contains('capturar')) {
+      const lido = await spCapturarSessao(rede);
+      p.contas[rede] = {
+        usuario: div.querySelector('.usuario').value.trim().replace(/^@/, ''),
+        cookies: lido.cookies,
+        salvo_em: new Date().toLocaleString('pt-BR'),
+      };
+      await salvar();
+      desenharPersonas();
+      const novo = document.querySelector(`.conta[data-rede="${rede}"] .res`);
+      novo.innerHTML = `<span class="ok">✓ sessão guardada em «${_esc(p.nome)}»: ${lido.cookies.length} cookie(s) — confira com Abrir</span>`
+        + (lido.faltando.length ? `<div class="am">⚠ não há ${_esc(lido.faltando.join(', '))} — o login pode não ter terminado; termine na página e salve de novo</div>` : '');
       return;
     }
     // Salvar e entrar

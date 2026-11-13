@@ -39,12 +39,31 @@ Uma **persona** é uma página com as suas redes (por exemplo, duas páginas, ca
 uma com o seu Instagram, X, TikTok…). No topo do painel, **Persona — quem
 publica**: crie, renomeie, exclua e escolha a persona.
 
-Em **Contas da persona**, para cada rede, cole os cookies exportados pelo
-**Cookie-Editor** (na página da rede, logada; exportar como JSON) e clique
-**Salvar e entrar**. A extensão apaga a sessão que estiver no navegador para
-aquela rede e grava a da conta — o navegador fica logado sem senha.
+Em **Contas da persona**, para cada rede, entre pela página de login e salve a
+sessão do navegador, ou importe os cookies pelo **Cookie-Editor**. A sessão
+fica guardada na persona para entrar de novo quando você preparar a publicação.
 
-### Como adicionar uma conta (Cookie-Editor)
+**Cadastre uma vez:** nas próximas publicações, a extensão reutiliza a sessão
+guardada automaticamente. Para restaurá-la sem publicar, escolha a persona e
+clique **Entrar de novo**. **Entrar pela tela** é para cadastrar ou renovar uma
+sessão, não para cada troca de conta. Se a rede invalidar a sessão, pode ser
+necessário fazer login e verificação novamente.
+
+### Como adicionar uma conta — jeito 1: entrar pela tela
+
+1. No painel, escolha a **persona** e abra **Contas da persona**.
+2. Na rede, clique **Entrar pela tela**: a página de login abre numa aba nova
+   (a sessão daquela rede que estava no navegador sai daqui — sem «Sair», então
+   se ela estiver guardada em outra persona, continua valendo lá).
+3. Entre com **usuário e senha** (e o código, se a rede pedir). A senha é
+   digitada na página da rede; a extensão não vê nem guarda.
+4. Volte ao painel, escreva o @ (só para lembrar) e clique **Salvar a sessão do
+   navegador**.
+
+O Threads entra pela conta do Instagram: se ele oferecer «Continuar como @…» de
+outra conta, escolha entrar com usuário e senha.
+
+### Como adicionar uma conta — jeito 2: Cookie-Editor
 
 1. No navegador onde você **já está logado** na conta, instale o
    [**Cookie-Editor**](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm) (Chrome Web Store, grátis).
@@ -57,8 +76,9 @@ aquela rede e grava a da conta — o navegador fica logado sem senha.
 5. Confira o «✓ … cookie(s) gravado(s)» e clique em **Abrir** para ver a rede
    logada. Se avisar que faltaram cookies, exporte de novo com a página logada.
 
-⚠ Depois de exportar, **não clique em «Sair»** nessa conta no outro navegador —
-sair encerra a sessão copiada. Se a conta cair (senha trocada, «sair de todos os
+⚠ **Nunca clique em «Sair»** numa conta guardada, nem no outro navegador — sair
+encerra a sessão guardada. Para usar outra conta cadastrada, escolha a persona e
+use **Entrar de novo**, ou prepare a publicação. Se a conta cair (senha trocada, «sair de todos os
 dispositivos»), exporte e cole de novo.
 
 **Ao preparar,** a extensão troca a sessão de cada rede para a conta da persona
