@@ -288,16 +288,21 @@ function aplicarLegendas(texto) {
   const p = persona();
   const r = spImportarLegendas(texto, p ? Object.keys(p.contas) : null);
   const redes = Object.keys(r.legendas);
+  // A SELEÇÃO DE REDES NÃO MUDA (pedido de 13/11: "seleciona todas as redes
+  // novamente quando só selecionei uma"). Toda rede do arquivo recebe a legenda
+  // própria — se você marcar depois, ela já está lá —, e o aviso diz quais
+  // ficaram desmarcadas.
   for (const id of redes) {
     const l = _linhaLeg(id);
     l.querySelector('.propria').checked = true;
     l.querySelector('.leg-propria').value = r.legendas[id];
-    document.querySelector(`#redes input[value="${id}"]`).checked = true;
   }
-  chrome.storage.local.set({ redes: marcadas() });
   desenharLegendas();
+  const ms = marcadas();
+  const fora = redes.filter(id => !ms.includes(id));
   $('leg-avisos').innerHTML =
-    (redes.length ? `<div class="dica ok">✓ aplicado em: ${redes.map(id => _esc(RECEITAS[id].nome)).join(', ')}</div>` : '')
+    (redes.length ? `<div class="dica ok">✓ legenda aplicada em: ${redes.map(id => _esc(RECEITAS[id].nome)).join(', ')}</div>` : '')
+    + (fora.length ? `<div class="dica">• desmarcada(s), não vão ser publicadas: ${fora.map(id => _esc(RECEITAS[id].nome)).join(', ')} — marque em «Redes» se quiser</div>` : '')
     + r.avisos.map(a => `<div class="dica am">⚠ ${_esc(a)}</div>`).join('');
   return r;
 }

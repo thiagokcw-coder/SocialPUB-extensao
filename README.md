@@ -121,7 +121,8 @@ Em **📝 Trazer legendas escritas fora**:
    texto do Instagram
    ```
 3. Escolha o arquivo **.txt** (ou cole o texto) e **Aplicar**: cada rede do
-   arquivo ganha a **legenda própria** e é **marcada**.
+   arquivo ganha a **legenda própria**. A seleção de redes **não muda** — só as
+   marcadas são publicadas; o aviso diz quais redes do arquivo estão desmarcadas.
 
 Aceita os nomes como o modelo escreve («X (Twitter)», «Tik Tok», «IG»…).
 Rede desconhecida, seção vazia ou repetida, rede sem conta na persona, rede em
