@@ -100,7 +100,8 @@ da outra persona. Os **colaboradores do Instagram** também são por persona.
 
 ## Publicar sozinho
 
-Com **Publicar sozinho depois de preparar** ligado (fica guardado), cada rede é
+**Publicar sozinho depois de preparar** começa marcado sempre que o painel é
+aberto. Você pode desmarcar para preparar sem publicar naquele uso. Ligado, cada rede é
 preparada, conferida e publicada — a mesma regra do app:
 
 - só publica se a **legenda conferiu** (o texto inteiro está no editor);

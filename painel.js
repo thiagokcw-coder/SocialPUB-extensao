@@ -250,14 +250,11 @@ function desenharRedes() {
 function _rotuloBotao() {
   $('ir').textContent = $('publicar-auto').checked ? 'Preparar e PUBLICAR nas redes marcadas' : 'Preparar nas redes marcadas';
 }
-$('publicar-auto').addEventListener('change', () => {
-  chrome.storage.local.set({ publicar_auto: $('publicar-auto').checked });
-  _rotuloBotao();
-});
+$('publicar-auto').checked = true;
+_rotuloBotao();
+$('publicar-auto').addEventListener('change', _rotuloBotao);
 
-chrome.storage.local.get({ redes: ['x'], publicar_auto: false }).then(s => {
-  $('publicar-auto').checked = !!s.publicar_auto;
-  _rotuloBotao();
+chrome.storage.local.get({ redes: ['x'] }).then(s => {
   document.querySelectorAll('#redes input').forEach(c => { c.checked = s.redes.includes(c.value); });
   desenharLegendas();   // marcar por código não dispara 'change'
 });
