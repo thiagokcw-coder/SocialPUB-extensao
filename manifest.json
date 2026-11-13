@@ -1,22 +1,29 @@
 {
   "manifest_version": 3,
-  "name": "SocialPUB — teste no X",
-  "version": "0.2.0",
-  "description": "Teste: abre o compositor do X, anexa o arquivo, escreve a legenda, confere e PARA antes de postar.",
+  "name": "SocialPUB",
+  "version": "0.3.0",
+  "description": "Prepara a publicação no X, Instagram (Reel), TikTok, Threads e Facebook — anexa, escreve, confere e PARA antes de publicar.",
   "permissions": [
     "scripting",
     "tabs",
-    "debugger"
+    "debugger",
+    "storage"
   ],
   "host_permissions": [
     "https://x.com/*",
-    "https://twitter.com/*"
+    "https://twitter.com/*",
+    "https://www.instagram.com/*",
+    "https://www.tiktok.com/*",
+    "https://www.threads.com/*",
+    "https://www.threads.net/*",
+    "https://www.facebook.com/*",
+    "https://web.facebook.com/*"
   ],
   "background": {
     "service_worker": "background.js"
   },
   "action": {
-    "default_title": "SocialPUB — abrir o painel de teste"
+    "default_title": "SocialPUB — abrir o painel"
   },
   "optional_host_permissions": [
     "https://*/*",

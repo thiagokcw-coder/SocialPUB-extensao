@@ -1,18 +1,20 @@
-# SocialPUB — extensão de teste (só o X)
+# SocialPUB — extensão do Chrome
 
-Primeiro passo para o SocialPUB virar extensão do Chrome (para rodar no
-navegador do Grok). Faz no X o mesmo que a receita medida do app: abre o
-compositor, anexa o arquivo, escreve a legenda, **confere** o que ficou no
-editor e **para antes de postar**.
+Prepara a mesma publicação em várias redes: abre o compositor de cada uma,
+anexa o vídeo ou a imagem, escreve a legenda, confere o que ficou no editor e
+**para antes de publicar**. Quem clica em publicar é você.
 
-A pergunta que este teste responde: **a legenda entra de verdade no editor do X
-quando quem escreve é uma extensão?** Os editores das redes ignoram tecla
-simulada por script, então há dois métodos para comparar:
+| rede | o que cobre | passos |
+|---|---|---|
+| X | imagem, vídeo, só texto | compositor `x.com/compose/post` |
+| Instagram | **só Reel (vídeo)** | Criar → Postar → arquivo → OK do aviso → corte **Original** → Avançar → Avançar → legenda → **colaboradores** |
+| TikTok | **só vídeo** | upload no TikTok Studio → espera o vídeo subir → fecha o aviso «Entendi» → apaga o nome do arquivo da legenda → legenda |
+| Threads | imagem, vídeo, só texto | Criar → arquivo → legenda |
+| Facebook | imagem, vídeo, só texto | `facebook.com/post/create` → arquivo → espera a tela certa → legenda |
 
-- **A · Texto do navegador** — `execCommand('insertText')`. Sem faixa amarela.
-- **B · Teclado real** — API de depuração do Chrome (`chrome.debugger`), teclas
-  reais como as do Playwright no app. Mostra a faixa amarela "está depurando"
-  enquanto escreve.
+Os passos e seletores são os **medidos** no app SocialPUB (`publicador.py`).
+O que não foi medido fica de fora: foto e story no Instagram, YouTube, Kwai e
+Telegram.
 
 ## Instalar
 
@@ -22,43 +24,47 @@ simulada por script, então há dois métodos para comparar:
 2. `chrome://extensions` → ligue o **Modo do desenvolvedor**.
 3. **Carregar sem compactação** → escolha a pasta descompactada (a que tem o
    `manifest.json`).
-4. Use um Chrome em que a conta do X **já esteja logada**.
+4. Use um Chrome em que as contas das redes **já estejam logadas**.
 
 **Atualizar:** baixe de novo, substitua a pasta e clique em ↻ no card da
 extensão em `chrome://extensions`.
 
-## Testar
+## Usar
 
 1. Clique no ícone da extensão → abre o painel numa aba.
-2. Escolha uma imagem, escreva uma legenda com **acentos, uma quebra de linha e
-   uma #hashtag**, escolha o método **A** e clique **Preencher no X**.
-3. Olhe a aba do X e o **Relatório** no painel.
-4. Repita com o método **B**.
+2. Marque as redes.
+3. Cole o **link do vídeo** (o que o Grok gerou) ou escolha um arquivo.
+4. Escreva a legenda.
+5. Instagram: confira os **colaboradores** (o padrão fica salvo).
+6. **Preparar nas redes marcadas.** Uma rede de cada vez, cada uma na sua aba.
+   O relatório diz, por rede, o que foi feito e se a legenda conferiu.
 
-Nada é postado: o botão Postar fica com você.
+Se uma rede parar no meio (uma tela que não foi medida, um @ de colaborador
+que não aparece), a aba dela **fica aberta** com o que já foi feito, para você
+terminar à mão.
 
-## Resultado (13/11/2026, X)
+## Como ela escreve e clica
 
-Os dois métodos puseram o texto e a imagem no compositor. A diferença foi a
-**#hashtag**: no **B** ela ficou **azul** (o editor processou como digitação de
-uma pessoa); no **A** ficou **branca** — o texto aparece, mas o editor não o
-tratou como digitado. **O B virou o padrão.** O A fica só para comparar em outras
-redes.
+Os editores das redes ignoram tecla e clique simulados por script. Por isso a
+extensão usa a API de depuração do Chrome (`chrome.debugger`): teclas e cliques
+**reais**, como os de uma pessoa. Enquanto cada rede é preparada, o Chrome
+mostra a faixa amarela «uma extensão está depurando este navegador» — é isso.
 
-## Vídeo por link (o que o Grok gera)
+**Medido no X (13/11/2026):** pelo teclado real (método B) a #hashtag fica
+azul, como digitada; pelo comando de texto do navegador (A) fica branca — o
+editor não processa. **B é o padrão;** A fica no painel só para comparar.
 
-O painel tem o campo **Link do vídeo ou da imagem**: cole o endereço do que o
-Grok gerou, e a extensão baixa e anexa. Na primeira vez com um site novo, o
-Chrome pergunta se a extensão pode acessar **aquele** site (só ele, não todos).
+## Vídeo por link
 
 - O link tem de abrir o **arquivo** (`.mp4`, `.jpg`…), não uma página com o
   vídeo dentro. Página é recusada com o motivo.
-- Link `blob:` (vídeo que só existe dentro de uma aba) não serve.
-- Acima de ~60 MB o painel avisa: o arquivo atravessa até a aba da rede pela
-  memória do navegador.
+- Na primeira vez com um site novo, o Chrome pergunta se a extensão pode
+  acessar **aquele** site (só ele).
+- Link `blob:` não serve. Acima de ~60 MB o painel avisa.
 
-## Teste automático
+## Testes
 
-No repositório do SocialPUB, `tests/test_extensao_x.py` roda o mesmo código numa réplica do compositor em
-Chrome real (24 verificações, incluindo o download por link). Ele **não** prova o editor de verdade do X — isso
-só o teste acima diz.
+No repositório do SocialPUB: `tests/test_extensao.py` roda o motor inteiro com
+cliques e teclas reais contra réplicas do compositor de cada rede (34
+verificações), e `tests/test_extensao_link.py` testa o download por link (7).
+As réplicas **não** provam o DOM real das redes — isso só o uso diz.

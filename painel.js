@@ -1,6 +1,6 @@
-// Painel de teste: uma rede (X), preenche e PARA antes de postar.
-const R = RECEITAS.x;
+// Painel: escolhe as redes, a mídia e o texto, e prepara uma rede de cada vez.
 const $ = id => document.getElementById(id);
+const PADRAO_COLAB = '@endireitasul, @anothernewsbr';
 
 function log(msg, cls) {
   const el = $('log');
@@ -9,126 +9,105 @@ function log(msg, cls) {
   if (cls) linha.className = cls;
   linha.textContent = msg;
   el.appendChild(linha);
+  linha.scrollIntoView({ block: 'nearest' });
 }
+
+/** «@a, @b» → ['a', 'b']; recusa o que não é @ válido do Instagram. */
+function nomesDeColaboradores(texto) {
+  const nomes = [];
+  for (const p of String(texto || '').split(/[\s,;]+/)) {
+    const n = p.trim().replace(/^@/, '').toLowerCase();
+    if (!n) continue;
+    if (!/^[a-z0-9._]{1,30}$/.test(n)) throw new Error(`«${p}» não é um @ válido do Instagram`);
+    if (!nomes.includes(n)) nomes.push(n);
+  }
+  return nomes;
+}
+
+// ── redes ────────────────────────────────────────────────────────────────
+for (const id of ORDEM_REDES) {
+  const R = RECEITAS[id];
+  const l = document.createElement('label');
+  l.className = 'rede';
+  l.innerHTML = `<input type="checkbox" value="${id}"> ${R.nome} <small>(${R.aceita.join('/')})</small>`;
+  $('redes').appendChild(l);
+}
+
+// ── o que fica salvo entre usos ──────────────────────────────────────────
+chrome.storage.local.get({ redes: ['x'], colab: PADRAO_COLAB }).then(s => {
+  document.querySelectorAll('#redes input').forEach(c => { c.checked = s.redes.includes(c.value); });
+  $('colab').value = s.colab;
+});
+$('redes').addEventListener('change', () => {
+  chrome.storage.local.set({ redes: [...document.querySelectorAll('#redes input:checked')].map(c => c.value) });
+});
+$('colab').addEventListener('change', () => chrome.storage.local.set({ colab: $('colab').value }));
 
 $('leg').addEventListener('input', () => {
   const n = $('leg').value.length;
-  $('cont').textContent = `${n} / ${R.legenda_max}`;
-  $('cont').classList.toggle('passou', n > R.legenda_max);
+  const estourou = ORDEM_REDES.filter(id => document.querySelector(`#redes input[value=${id}]`).checked && n > RECEITAS[id].legenda_max);
+  $('cont').textContent = `${n} caracteres` + (estourou.length ? ` — passa do limite: ${estourou.map(id => RECEITAS[id].nome).join(', ')}` : '');
+  $('cont').className = 'dica' + (estourou.length ? ' am' : '');
 });
 
-/** Abre a URL numa aba nova e espera ela terminar de carregar. */
-async function abrirAba(url) {
-  const tab = await chrome.tabs.create({ url, active: true });
-  await new Promise(res => {
-    const ouvir = (id, info) => {
-      if (id === tab.id && info.status === 'complete') {
-        chrome.tabs.onUpdated.removeListener(ouvir);
-        res();
-      }
-    };
-    chrome.tabs.onUpdated.addListener(ouvir);
-    // se ela já tinha carregado antes do ouvinte nascer
-    chrome.tabs.get(tab.id).then(t => {
-      if (t.status === 'complete') { chrome.tabs.onUpdated.removeListener(ouvir); res(); }
-    });
-  });
-  return tab.id;
-}
-
-async function naAba(tabId, func, args) {
-  const [r] = await chrome.scripting.executeScript({ target: { tabId }, func, args });
-  return r ? r.result : null;
-}
-
-async function escreverPorTeclado(tabId, texto) {
-  const foco = await naAba(tabId, spFocarEditor, [R.legenda, 20000]);
-  if (!foco || !foco.ok) return foco || { ok: false, erro: 'sem resposta da aba' };
-  const alvo = { tabId };
-  await chrome.debugger.attach(alvo, '1.3');
-  try {
-    await spEscreverTeclas((m, p) => chrome.debugger.sendCommand(alvo, m, p), texto);
-  } finally {
-    try { await chrome.debugger.detach(alvo); } catch (e) { /* já soltou */ }
-  }
-  return foco;
-}
-
+// ── a leva ───────────────────────────────────────────────────────────────
 $('ir').addEventListener('click', async () => {
   const btn = $('ir');
+  const redes = [...document.querySelectorAll('#redes input:checked')].map(c => c.value);
   const texto = $('leg').value;
   const url = $('url').value.trim();
   const local = $('arq').files[0] || null;
   const metodo = document.querySelector('input[name=metodo]:checked').value;
+  $('log').textContent = '';
+  if (!redes.length) { log('Marque pelo menos uma rede.', 'am'); return; }
   if (!texto && !url && !local) { log('Escreva uma legenda, cole um link ou escolha um arquivo.', 'am'); return; }
+  let colaboradores;
+  try { colaboradores = nomesDeColaboradores($('colab').value); }
+  catch (e) { log('✗ ' + e.message, 'er'); return; }
 
   // A permissão para baixar do site do link é pedida AQUI, antes de qualquer
-  // await: o Chrome só mostra o pedido dentro do clique. Só aquele site —
-  // não "todos os sites".
+  // await: o Chrome só mostra o pedido dentro do clique. Só aquele site.
   let permitido = Promise.resolve(true);
   if (url) {
     let origem;
     try { origem = new URL(url).origin; } catch (e) { log('✗ link inválido', 'er'); return; }
     permitido = chrome.permissions.request({ origins: [origem + '/*'] });
   }
+
   btn.disabled = true;
-  $('log').textContent = '';
   const t0 = Date.now();
   try {
-    // A mídia vem ANTES de abrir a rede: link quebrado não deve deixar uma
-    // aba do X aberta pela metade.
-    let arquivo = null;
+    let midia = null;
     if (url) {
       if (!(await permitido)) { log('✗ sem permissão para baixar desse site', 'er'); return; }
       log('baixando o link …');
-      arquivo = await spBaixarLink(url);
+      midia = await spBaixarLink(url);
     } else if (local) {
-      arquivo = await spLerArquivo(local);
+      midia = await spLerArquivo(local);
     }
-    if (arquivo) {
-      const mb = arquivo.tamanho / 1048576;
-      log(`✓ mídia: ${arquivo.nome} · ${arquivo.tipo} · ${mb.toFixed(1)} MB`, 'ok');
+    if (midia) {
+      const mb = midia.tamanho / 1048576;
+      log(`✓ mídia: ${midia.nome} · ${midia.tipo} · ${mb.toFixed(1)} MB`, 'ok');
       if (mb > SP_LIMITE_AVISO_MB) log(`⚠ arquivo grande (${mb.toFixed(0)} MB): pode demorar ou falhar ao atravessar para a aba`, 'am');
     }
 
-    log(`abrindo ${R.url} …`);
-    const tabId = await abrirAba(R.url);
-
-    if (arquivo) {
-      log(`anexando ${arquivo.nome} …`);
-      const a = await naAba(tabId, spAnexar, [arquivo.b64, arquivo.nome, arquivo.tipo || 'application/octet-stream', R.arquivo, 30000]);
-      if (!a || !a.ok) { log('✗ arquivo: ' + ((a && a.erro) || 'sem resposta'), 'er'); return; }
-      log(`✓ arquivo entregue ao campo (${a.seletor})`, 'ok');
+    const resultados = [];
+    for (const id of redes) {
+      log('');
+      resultados.push(await prepararRede(id, midia, texto,
+        { metodo, colaboradores: id === 'instagram' ? colaboradores : [], log }));
     }
 
-    if (texto) {
-      log(`escrevendo pelo método ${metodo === 'teclado' ? 'B · teclado real' : 'A · texto do navegador'} …`);
-      const e = metodo === 'teclado'
-        ? await escreverPorTeclado(tabId, texto)
-        : await naAba(tabId, spEscreverTexto, [R.legenda, texto, 20000]);
-      if (!e || !e.ok) { log('✗ legenda: ' + ((e && e.erro) || 'sem resposta'), 'er'); return; }
+    log('');
+    log('── resumo ──');
+    for (const r of resultados) {
+      const nome = RECEITAS[r.rede].nome;
+      if (r.pulada) log(`${nome}: pulada`, 'am');
+      else if (r.erro) log(`${nome}: parou no meio — aba aberta`, 'er');
+      else if (r.legendaOk === false) log(`${nome}: legenda NÃO conferiu — olhe a aba`, 'er');
+      else log(`${nome}: pronta para você publicar`, 'ok');
     }
-
-    // A conferência é o que faz deste um TESTE: o editor pode parecer
-    // preenchido e estar vazio por dentro (lição do Draft.js no SocialPUB).
-    await new Promise(r => setTimeout(r, arquivo ? 2500 : 800));
-    const lido = await naAba(tabId, spLerTexto, [R.legenda, R.anexos, R.publicar]);
-    if (texto) {
-      const bate = spNormalizar(lido.texto).includes(spNormalizar(texto));
-      log(bate ? '✓ legenda conferida: o texto INTEIRO está no editor' : '✗ a legenda NÃO bate com o que foi escrito', bate ? 'ok' : 'er');
-      if (!bate) log('   o editor ficou com: ' + JSON.stringify(lido.texto), 'er');
-    }
-    if (arquivo) {
-      log(lido.midia ? `✓ mídia aparece no compositor (${lido.midia})` : '? a mídia não apareceu (vídeo pode ainda estar subindo — olhe a aba)',
-          lido.midia ? 'ok' : 'am');
-    }
-    if (lido.botao.existe) {
-      log(lido.botao.habilitado ? '✓ botão Postar habilitado — NÃO cliquei; poste você se quiser' : '? botão Postar ainda desabilitado',
-          lido.botao.habilitado ? 'ok' : 'am');
-    } else {
-      log('? não achei o botão Postar', 'am');
-    }
-    log(`(${((Date.now() - t0) / 1000).toFixed(1)}s)`);
+    log(`(${((Date.now() - t0) / 1000).toFixed(0)}s)`);
   } catch (err) {
     log('✗ erro: ' + (err && err.message ? err.message : err), 'er');
   } finally {
