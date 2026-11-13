@@ -40,6 +40,11 @@
   .acoes-imp button { padding:6px 10px; font-size:12px; }
   .acoes-imp input[type=file] { width:auto; flex:1; }
   #log button.diag { display:block; margin:6px 0; padding:6px 10px; font-size:12px; }
+  details.como { margin:0 0 10px; padding:8px 10px; border:1px solid var(--bd); border-radius:8px; background:var(--bg); }
+  details.como summary { cursor:pointer; font-size:13px; }
+  details.como ol { margin:8px 0; padding-left:20px; font-size:13px; line-height:1.55; }
+  details.como a { color: var(--ac); }
+  code { background:var(--sf); padding:1px 4px; border-radius:4px; font-size:12px; }
   .publicar-auto { display:flex; gap:10px; align-items:flex-start; cursor:pointer; }
   .leg-rede { border-top:1px solid var(--bd); padding:8px 0; }
   .leg-rede .topo { display:flex; justify-content:space-between; gap:8px; align-items:center; font-size:13px; }
@@ -66,7 +71,20 @@
 
   <details class="caixa" id="contas-caixa">
     <summary><b>Contas da persona</b> <span class="dica" id="contas-resumo"></span></summary>
-    <div class="dica" style="margin:8px 0 10px">Uma conta por rede, por persona. Cole os cookies exportados pelo <b>Cookie-Editor</b> na página da rede, logada, e clique <b>Salvar e entrar</b>: a sessão entra neste navegador sem senha, substituindo a que estiver nele para aquela rede. Os cookies ficam guardados <b>só nesta extensão, neste navegador</b> — dão acesso total à conta; não compartilhe o perfil do navegador.</div>
+    <div class="dica" style="margin:8px 0 6px">Uma conta por rede, por persona. A conta entra <b>sem senha</b>: você copia a sessão de um navegador onde já está logado e cola aqui.</div>
+    <details class="como" open>
+      <summary><b>Como adicionar uma conta</b> (2 minutos por rede)</summary>
+      <ol>
+        <li>No navegador onde você <b>já está logado</b> na conta (o seu Chrome, por exemplo), instale o
+          <a href="https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm" target="_blank" rel="noopener"><b>Cookie-Editor</b></a> (Chrome Web Store, grátis).</li>
+        <li>Abra a rede <b>logada na conta certa</b>: <code>instagram.com</code>, <code>x.com</code>, <code>tiktok.com</code>, <code>threads.com</code> ou <code>facebook.com</code>. Cada rede tem a sua exportação — os cookies de uma não servem para outra.</li>
+        <li>Clique no ícone do Cookie-Editor → <b>Export</b> (Exportar) → <b>JSON</b>. Os cookies vão para a área de transferência.</li>
+        <li>Aqui: escolha a <b>persona</b> no topo, abra <b>Contas da persona</b>, cole no campo da rede, escreva o @ (só para lembrar) e clique <b>Salvar e entrar</b>.</li>
+        <li>Confira: deve aparecer <span class="ok">✓ … cookie(s) gravado(s)</span>. Clique em <b>Abrir</b> e veja a rede logada. Se avisar que faltaram cookies (<code>sessionid</code>, <code>auth_token</code>…), exporte de novo com a página logada.</li>
+      </ol>
+      <div class="dica">⚠ Depois de exportar, <b>não clique em «Sair»</b> nessa conta no outro navegador: sair encerra a sessão que você copiou, e a conta cai aqui também. Se ela cair (senha trocada, «sair de todos os dispositivos»), é só exportar e colar de novo.</div>
+      <div class="dica">⚠ Os cookies dão acesso total à conta. Ficam guardados <b>só nesta extensão, neste navegador</b> — não mande para ninguém nem compartilhe o perfil do navegador.</div>
+    </details>
     <div id="contas"></div>
   </details>
 

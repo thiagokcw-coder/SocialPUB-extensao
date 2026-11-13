@@ -88,6 +88,8 @@
 
     existe(cands) { return !!achar(cands, true); },
 
+    onde() { return location.origin + location.pathname; },
+
     /** O MEDIDOR da extensão: o que está na tela quando uma etapa falha.
      * Endereço, idioma, tamanho da janela, se parece login, os diálogos abertos
      * e os clicáveis visíveis com texto e nomes (aria-label, inclusive dos

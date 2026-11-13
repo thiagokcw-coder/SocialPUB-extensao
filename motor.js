@@ -97,8 +97,19 @@ async function prepararRede(redeId, midia, texto, opcoes) {
   async function clicar(cands, prazoMs, oQue) {
     const p = await naAba('localizar', cands, prazoMs);
     if (!p || !p.ok) throw new EtapaFalhou(`${oQue}: ${(p && p.erro) || 'sem resposta da aba'}`);
-    await spClicarEm(cmd, p.x, p.y);
-    return p;
+    // Leva o mouse, ESPERA e MEDE DE NOVO antes de clicar. O menu lateral do
+    // Instagram (13/11) fica recolhido e se EXPANDE com o mouse em cima: os
+    // itens mudam de lugar, e o clique na posição medida antes caiu em «Painel»
+    // em vez de «Criar» (foi parar nas ferramentas de anúncio).
+    await cmd('Input.dispatchMouseEvent', { type: 'mouseMoved', x: p.x, y: p.y });
+    await new Promise(r => setTimeout(r, 400));
+    const q = await naAba('localizar', cands, 1500);
+    const ponto = (q && q.ok) ? q : p;
+    if (q && q.ok && (Math.abs(q.x - p.x) > 4 || Math.abs(q.y - p.y) > 4)) {
+      log(`(${oQue}: mudou de lugar com o mouse em cima — cliquei na posição nova)`);
+    }
+    await spClicarEm(cmd, ponto.x, ponto.y);
+    return ponto;
   }
 
   async function dispensarAvisos(esperaS) {
@@ -124,6 +135,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
       if (await naAba('existe', R.abrir.esperar)) {
         log('o compositor já estava aberto');
       } else {
+        const antes = await naAba('onde');
         await clicar(R.abrir.clicar, ESPERA_PADRAO_MS, 'botão de criar');
         if (R.abrir.menu) {
           // Diálogo OU submenu, o que vier primeiro (6s). Clicar «Postar» com o
@@ -140,7 +152,13 @@ async function prepararRede(redeId, midia, texto, opcoes) {
           }
         }
         const d = await naAba('localizar', R.abrir.esperar, 20000);
-        if (!d || !d.ok) throw new EtapaFalhou('cliquei em criar e o compositor não abriu — a tela que ficou aberta não foi medida');
+        if (!d || !d.ok) {
+          // Clicar em "criar" não muda de página: se mudou, o clique foi parar
+          // em outro lugar — e seguir clicando lá seria pior.
+          const depois = await naAba('onde');
+          if (depois !== antes) throw new EtapaFalhou(`o clique em criar levou para ${depois} — não era o botão de criar; parei`);
+          throw new EtapaFalhou('cliquei em criar e o compositor não abriu — a tela que ficou aberta não foi medida');
+        }
         log('✓ compositor aberto', 'ok');
       }
     }

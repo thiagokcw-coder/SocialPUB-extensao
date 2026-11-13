@@ -44,6 +44,23 @@ Em **Contas da persona**, para cada rede, cole os cookies exportados pelo
 **Salvar e entrar**. A extensão apaga a sessão que estiver no navegador para
 aquela rede e grava a da conta — o navegador fica logado sem senha.
 
+### Como adicionar uma conta (Cookie-Editor)
+
+1. No navegador onde você **já está logado** na conta, instale o
+   [**Cookie-Editor**](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm) (Chrome Web Store, grátis).
+2. Abra a rede **logada na conta certa** (`instagram.com`, `x.com`, `tiktok.com`,
+   `threads.com` ou `facebook.com`). Cada rede tem a sua exportação.
+3. Ícone do Cookie-Editor → **Export** → **JSON** (vai para a área de
+   transferência).
+4. No painel do SocialPUB: escolha a **persona**, abra **Contas da persona**, cole
+   no campo da rede, escreva o @ (só para lembrar) e clique **Salvar e entrar**.
+5. Confira o «✓ … cookie(s) gravado(s)» e clique em **Abrir** para ver a rede
+   logada. Se avisar que faltaram cookies, exporte de novo com a página logada.
+
+⚠ Depois de exportar, **não clique em «Sair»** nessa conta no outro navegador —
+sair encerra a sessão copiada. Se a conta cair (senha trocada, «sair de todos os
+dispositivos»), exporte e cole de novo.
+
 **Ao preparar,** a extensão troca a sessão de cada rede para a conta da persona
 escolhida antes de abrir o compositor. Rede em que a persona **não tem conta é
 pulada** — preparar com a sessão que estivesse no navegador publicaria na página
