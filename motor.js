@@ -107,8 +107,13 @@ async function prepararRede(redeId, midia, texto, opcoes) {
   }
   if (texto.length > R.legenda_max) log(`⚠ legenda com ${texto.length} caracteres; o limite é ${R.legenda_max}`, 'am');
 
-  log(`abrindo ${R.url} …`);
-  const tabId = await _motorAbrirAba(R.url);
+  let url = R.url;
+  if (R.perfil) {
+    try { url = spUrlPaginaFacebook(opcoes.facebookPaginaUrl); }
+    catch (e) { log('✗ ' + e.message, 'er'); return { rede: redeId, erro: e.message }; }
+  }
+  log(`abrindo ${url} …`);
+  const tabId = await _motorAbrirAba(url);
   const alvo = { tabId };
   await chrome.debugger.attach(alvo, '1.3');
   // A depuração pode CAIR no meio (TikTok, 13/11: «Debugger is not attached»,
@@ -182,29 +187,14 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     if (R.perfil) {
       const nome = String(opcoes.facebookPagina || '').trim();
       if (!nome) throw new EtapaFalhou('Facebook não está como a página (configure a página na persona)');
-      const url = String(opcoes.facebookPaginaUrl || '').trim();
-      try {
-        await clicar(R.perfil.menu, url ? 15000 : ESPERA_PADRAO_MS, 'menu do perfil');
-        await clicar(R.perfil.todos, 10000, 'ver todos os perfis');
-        await clicar(_motorTrocar(R.perfil.pagina, nome), 10000, 'página do Facebook');
-        await naAba('sumiu', R.perfil.todos, 10000);
-        await new Promise(r => setTimeout(r, 1500));
-      } catch (e) {
-        if (!(e instanceof EtapaFalhou) || !/^https:\/\/([a-z0-9-]+\.)?facebook\.com\//i.test(url)) throw e;
-        // Plano B: abrir a página direto e usar o compositor dela. O autor
-        // continua conferido no compositor (conferirPaginaFacebook).
-        log(`${e.message} — abrindo a página direto: ${url}`, 'am');
-        await new Promise(r => chrome.tabs.update(tabId, { url }, () => r()));
-        await new Promise(r => setTimeout(r, 1000));
-        const fimC = Date.now() + 30000;
-        while (Date.now() < fimC && (await chrome.tabs.get(tabId)).status !== 'complete') await new Promise(r => setTimeout(r, 300));
-        for (let i = 0; i < 2; i++) {
-          const s = await naAba('localizar', R.perfil.alternar, i ? 4000 : 8000);
-          if (!s || !s.ok) break;
-          await clicar(R.perfil.alternar, 2000, 'mudar para a página');
-          log(`cliquei «${s.texto}» para agir como a página`);
-          await new Promise(r => setTimeout(r, 2500));
-        }
+      // A aba já abriu diretamente no link salvo, depois de restaurar a
+      // sessão. Algumas páginas ainda pedem «Mudar agora» para agir como elas.
+      for (let i = 0; i < 2; i++) {
+        const s = await naAba('localizar', R.perfil.alternar, i ? 4000 : 8000);
+        if (!s || !s.ok) break;
+        await clicar(R.perfil.alternar, 2000, 'mudar para a página');
+        log(`cliquei «${s.texto}» para agir como a página`);
+        await new Promise(r => setTimeout(r, 2500));
       }
     }
     // ── 1. abrir o compositor (só onde ele é um modal) ────────────────────

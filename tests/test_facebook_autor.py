@@ -64,21 +64,21 @@ async def main():
             assert result['ok'] is expected, (label, result)
             if 'conflitante' in label:
                 assert OTHER in result['nomes'], (label, result)
-        for script in ('receitas.js', 'motor.js'):
+        for script in ('receitas.js', 'personas.js', 'motor.js'):
             await page.add_script_tag(content=(ROOT / script).read_text(encoding='utf-8'))
         # Motor real com transporte e cliques simulados. Verifica o bloqueio
         # antes do preparo, na conferência e imediatamente antes de publicar.
         for stage in (1, 2, 3):
             await page.set_content(composer(f'<span id="autor">{PAGE}</span>'))
             result = await page.evaluate("""async ([name, other, stage]) => {
-              const logs = []; let reads = 0, publishClicks = 0, publishing = false;
+              const logs = [], opened = []; let reads = 0, publishClicks = 0, publishing = false;
               const realTimeout = window.setTimeout;
               window.setTimeout = cb => { queueMicrotask(cb); return 0; };
               window.chrome = { debugger: {
                 attach: async () => {}, detach: async () => {}, sendCommand: async () => {},
                 onDetach: {addListener() {}, removeListener() {}}
               }};
-              _motorAbrirAba = async () => 1;
+              _motorAbrirAba = async url => { opened.push(url); return 1; };
               window.spClicarEm = async () => { if (publishing) publishClicks++; };
               _motorNaAba = async (id, method, args) => {
                 if (method === 'facebookComo') {
@@ -86,6 +86,8 @@ async def main():
                   return SP.facebookComo(args[0]);
                 }
                 if (method === 'localizar') {
+                  if (args[0] === RECEITAS.facebook.perfil.menu) throw new Error('não deve passar pelo menu do perfil');
+                  if (args[0] === RECEITAS.facebook.perfil.alternar) return {ok: false};
                   publishing = args[0] === RECEITAS.facebook.publicar;
                   return {ok: true, idx: 0, x: 0, y: 0};
                 }
@@ -96,13 +98,15 @@ async def main():
               };
               try {
                 const result = await prepararRede('facebook', null, '', {
-                  facebookPagina: name, publicar: true, log: s => logs.push(s)
+                  facebookPagina: name, facebookPaginaUrl: 'https://www.facebook.com/pagina.exemplo',
+                  publicar: true, log: s => logs.push(s)
                 });
-                return {result, logs, publishClicks, reads};
+                return {result, logs, publishClicks, reads, opened};
               } finally { window.setTimeout = realTimeout; }
             }""", [PAGE, OTHER, stage])
             assert result['result']['erro'] == f'Facebook não está como a página {PAGE}', result
             assert result['publishClicks'] == 0 and result['reads'] == stage, result
+            assert result['opened'] == ['https://www.facebook.com/pagina.exemplo'], result
             assert any('autores encontrados' in s and OTHER in s for s in result['logs']), result
         await browser.close()
     print(f'OK: {len(cases)} cenários de identificação + 3 bloqueios e logs no motor')

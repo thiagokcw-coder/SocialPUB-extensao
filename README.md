@@ -197,6 +197,14 @@ senha.
 
 ## Testes
 
+**0.8.14 — Facebook pelo link da página:** nome e link HTTPS são pedidos e
+guardados por persona. Ao preparar, a extensão restaura a sessão da conta e
+abre diretamente o link salvo, sem passar pelo menu de perfis. Se a página
+pedir «Mudar agora», atende e confere o autor no compositor. Link ausente ou
+inválido bloqueia o preparo no Facebook. «Abrir Facebook» também usa o link
+salvo. `node tests/test_facebook_url.js` valida os links e a persistência;
+o teste do autor também confere que o motor abre esse endereço diretamente.
+
 **0.8.13 — autor da página no Facebook:** a conferência aceita o nome no
 cabeçalho anterior ao editor, a imagem do autor e o placeholder/aria-label
 personalizado («No que você está pensando, …?», «What's on your mind, …?» e

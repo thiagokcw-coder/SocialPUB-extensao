@@ -68,6 +68,7 @@ function desenharPersonas() {
   $('facebook-pagina').disabled = !p;
   $('facebook-pagina-url').value = p ? (p.facebook_pagina_url || '') : '';
   $('facebook-pagina-url').disabled = !p;
+  $('facebook-pagina-url').setCustomValidity('');
   desenharContas();
   desenharRedes();
 }
@@ -130,8 +131,13 @@ $('facebook-pagina-url').addEventListener('change', async () => {
   const p = persona();
   if (!p) return;
   p.facebook_pagina_url = $('facebook-pagina-url').value.trim();
+  const campo = $('facebook-pagina-url');
+  campo.setCustomValidity('');
+  try { p.facebook_pagina_url = spUrlPaginaFacebook(p.facebook_pagina_url); campo.value = p.facebook_pagina_url; }
+  catch (e) { campo.setCustomValidity(e.message); campo.reportValidity(); }
   await salvar();
 });
+$('facebook-pagina-url').addEventListener('input', () => $('facebook-pagina-url').setCustomValidity(''));
 
 // ── contas da persona (uma por rede, por cookies) ────────────────────────
 function desenharContas() {
@@ -186,7 +192,9 @@ $('contas').addEventListener('click', async ev => {
   const res = div.querySelector('.res');
   try {
     if (ev.target.classList.contains('abrir')) {
-      await chrome.tabs.create({ url: RECEITAS[rede].url.replace(/\/(compose\/post|tiktokstudio\/upload|post\/create)$/, '/'), active: true });
+      const url = rede === 'facebook' ? spUrlPaginaFacebook(p.facebook_pagina_url)
+        : RECEITAS[rede].url.replace(/\/(compose\/post|tiktokstudio\/upload|post\/create)$/, '/');
+      await chrome.tabs.create({ url, active: true });
       return;
     }
     if (ev.target.classList.contains('apagar')) {
@@ -450,6 +458,14 @@ $('ir').addEventListener('click', async () => {
       if (!RECEITAS[id].aceita.includes(tipo)) {
         resultados.push(await prepararRede(id, midia, texto, { log }));
         continue;
+      }
+      if (id === 'facebook') {
+        try { spUrlPaginaFacebook(p.facebook_pagina_url); }
+        catch (e) {
+          log(`[Facebook] ✗ ${e.message} — preencha o link na persona`, 'er');
+          resultados.push({ rede: id, erro: e.message });
+          continue;
+        }
       }
       const e = await spEntrar(id, conta.cookies);
       if (!e.entrou) {

@@ -9,6 +9,21 @@
 
 const SP_COLAB_PADRAO = '@endireitasul, @anothernewsbr';
 
+/** Endereço da página, guardado por persona; nunca um destino global. */
+function spUrlPaginaFacebook(valor) {
+  const texto = String(valor || '').trim();
+  if (!texto) throw new Error('informe o link da página do Facebook na persona');
+  let url;
+  try { url = new URL(texto); } catch (e) { throw new Error('informe um link válido da página do Facebook (https://www.facebook.com/…)'); }
+  if (url.protocol !== 'https:' || !['facebook.com', 'www.facebook.com', 'm.facebook.com', 'web.facebook.com'].includes(url.hostname)
+      || url.username || url.password || url.port || url.pathname === '/'
+      || /^\/(?:login|logout|checkpoint|l\.php|dialog|share|sharer|groups)(?:[/.]|$)/i.test(url.pathname)) {
+    throw new Error('use o link HTTPS da página do Facebook, não o endereço inicial ou de login');
+  }
+  url.hash = '';
+  return url.href;
+}
+
 function _spNovoId() { return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
 async function spCarregarPersonas() {
