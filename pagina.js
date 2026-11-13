@@ -13,7 +13,7 @@
 // a armadilha do «Criar» (textContent "Novo postCriar", tela só "Criar") e a do
 // «Original» (rótulo num <span> dentro do botão — o innerText do botão é o mesmo).
 (() => {
-  const VERSAO = 4;
+  const VERSAO = 5;
   if (self.SP && self.SP.versao === VERSAO) return;
 
   const INVIS = /[​‌‍﻿⁠]/g;
@@ -101,25 +101,29 @@
       return f ? { nome: f.name, tamanho: f.size, tipo: f.type } : null;
     },
 
+    /** Lê o progresso SÓ dentro do anexo. `anexo`: o anexo está na tela;
+     * `pronto`: apareceu «Ready/Pronto/Concluído» (ex.: «video.mp4: Ready»). */
     progressoUpload(cands) {
       const a = achar(cands, true);
-      if (!a) return { percentual: null, texto: '' };
+      if (!a) return { percentual: null, texto: '', anexo: false, pronto: false };
       const els = [a.el, ...a.el.querySelectorAll('[role="progressbar"], [aria-label], span, div')];
+      let pronto = null;
       for (const el of els) {
         if (!visivel(el) || el.closest('[contenteditable="true"]')) continue;
         const aria = el.getAttribute('aria-label') || '';
         const texto = norm(el.innerText);
         for (const s of [aria, texto.length < 180 ? texto : '']) {
           const m = s.match(/(?:Uploading|Enviando|A carregar|Carregando)\s*\(?\s*(\d{1,3})\s*%\)?/i);
-          if (m && Number(m[1]) <= 100) return { percentual: Number(m[1]), texto: m[0] };
+          if (m && Number(m[1]) <= 100) return { percentual: Number(m[1]), texto: m[0], anexo: true, pronto: false };
+          if (!pronto && s.length < 180 && /(?:^|[\s:])(?:Ready|Pronto|Concluído)\.?$/i.test(s)) pronto = s;
         }
         if (el.getAttribute('role') === 'progressbar' && el.hasAttribute('aria-valuenow')) {
           const n = Number(el.getAttribute('aria-valuenow'));
           const max = Number(el.getAttribute('aria-valuemax') || 100);
-          if (max > 0 && n >= 0 && n <= max) return { percentual: Math.round(n * 100 / max), texto: `Uploading (${Math.round(n * 100 / max)}%)` };
+          if (max > 0 && n >= 0 && n <= max) return { percentual: Math.round(n * 100 / max), texto: `Uploading (${Math.round(n * 100 / max)}%)`, anexo: true, pronto: false };
         }
       }
-      return { percentual: null, texto: '' };
+      return { percentual: null, texto: pronto || '', anexo: true, pronto: !!pronto };
     },
 
     /** Só rótulos explícitos do AUTOR no compositor, nunca o texto da legenda

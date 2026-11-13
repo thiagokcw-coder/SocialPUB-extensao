@@ -25,7 +25,7 @@ const RECEITAS = {
     abrir: { esperar: ['[role=dialog] div[data-testid="tweetTextarea_0"]'] },
     arquivo: ['[role=dialog] input[data-testid="fileInput"]'],
     arquivo_nativo: true,
-    upload: ['[role=dialog]'],
+    upload: ['[role=dialog] [data-testid="attachments"]'],
     legenda: ['[role=dialog] div[data-testid="tweetTextarea_0"]'],
     anexos: ['[role=dialog] [data-testid="attachments"]'],
     depois_do_arquivo: ['[role=dialog] [data-testid="attachments"]'],
@@ -181,7 +181,15 @@ const RECEITAS = {
                { css: '[role="dialog"] [role="button"], [role="dialog"] [role="radio"], [role="menu"] [role="menuitem"]', filhoTexto: '{u}' }],
     },
     abrir: {
-      clicar: ["What's on your mind?", 'No que você está pensando?', 'Em que estás a pensar?', 'Create post', 'Criar publicação', 'Criar post', 'Escreva algo', 'Write something'].map(t => ({ css: '[role="main"] [role="button"], [role="main"] button', contem: t })),
+      // Como página (13/11) o botão é «No que você está pensando, Uncensored
+      // Brasil?» — o nome entra no meio, então casa por CONTÉM sem o «?», e
+      // também por aria-label que COMECE com o texto.
+      clicar: [
+        ...["What's on your mind", 'No que você está pensando', 'Em que estás a pensar'].flatMap(t => [
+          `[role="main"] [role="button"][aria-label^="${t}"]`, `[role="button"][aria-label^="${t}"]`,
+          { css: '[role="main"] [role="button"], [role="main"] button', contem: t },
+          { css: '[role="button"], button', contem: t }]),
+        ...['Create post', 'Criar publicação', 'Criar post', 'Escreva algo', 'Write something'].map(t => ({ css: '[role="main"] [role="button"], [role="main"] button', contem: t }))],
       esperar: ['[role="dialog"] [role="textbox"]', '[role="dialog"] [contenteditable="true"]'],
     },
     arquivo: ['[role="dialog"] input[type="file"][accept*="video"]', '[role="dialog"] input[type="file"][accept*="image"]', '[role="dialog"] input[type="file"]'],

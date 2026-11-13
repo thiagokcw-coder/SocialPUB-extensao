@@ -58,16 +58,30 @@ class EtapaFalhou extends Error {}
 /** Monitor usado também no modo preparar, sem clicar em publicar. */
 async function spVigiarUpload({ ler, botao, log, maxMs = 180000, zeroMs = 30000,
   agora = Date.now, pausa = ms => new Promise(r => setTimeout(r, ms)) }) {
+  // 13/11: o log mostrou 33% e o compositor terminou «video.mp4: Ready» com o
+  // Post habilitado, mas o vigia acusou «0% por 30s». Agora: o relógio dos 30s
+  // ZERA a cada mudança de percentual; sem percentual com o anexo na tela é
+  // «ainda processando», não 0%; «Ready/Pronto/Concluído» é sucesso.
   const inicio = agora();
-  let zeroDesde = null, ultimo = null;
+  let zeroDesde = null, ultimo = null, andou = false, processando = false;
   for (;;) {
     const p = await ler();
     const b = await botao();
+    if (p.pronto) { log('upload: ' + (p.texto || 'pronto')); return; }
     if (p.percentual != null) {
-      if (p.percentual !== ultimo) log('upload: ' + p.texto);
+      if (p.percentual !== ultimo) {
+        log('upload: ' + p.texto);
+        zeroDesde = null;                       // mudou: recomeça a contar
+        if (p.percentual > 0) andou = true;
+      }
       ultimo = p.percentual;
-      if (p.percentual === 0) { if (zeroDesde == null) zeroDesde = agora(); }
+      processando = false;
+      if (p.percentual === 0 && !andou) { if (zeroDesde == null) zeroDesde = agora(); }
       else zeroDesde = null;
+    } else if (p.anexo) {
+      if (!processando && ultimo != null) log('upload: «Uploading» sumiu com o anexo na tela — processando');
+      processando = true;
+      zeroDesde = null;
     }
     if (b.habilitado && (p.percentual == null || p.percentual === 100)) return;
     if (zeroDesde != null && agora() - zeroDesde >= zeroMs) {

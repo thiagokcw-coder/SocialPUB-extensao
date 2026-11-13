@@ -197,6 +197,14 @@ senha.
 
 ## Testes
 
+**0.8.12 — vigia do X sem falso «0%»; criar post como página no Facebook:** o
+progresso do X é lido só dentro do anexo; «Ready/Pronto/Concluído» é sucesso;
+sem percentual com o anexo na tela é «processando», não 0%; o prazo de 30 s
+recomeça a cada mudança de percentual e não vale depois que o envio andou. No
+Facebook, o botão de criar casa por *contém* («No que você está pensando»,
+«What's on your mind», «Em que estás a pensar») e por aria-label que comece com
+esses textos — como página o nome dela entra no meio do texto.
+
 **0.8.11 — X confere pelo compositor; Facebook acha «Conta, seu perfil»:** no
 X, a cópia em `Downloads/SocialPUB/` só é entregue com o download «complete» e
 o tamanho igual ao da mídia; depois da entrega a conferência é pelo anexo no
