@@ -13,7 +13,7 @@
 // a armadilha do «Criar» (textContent "Novo postCriar", tela só "Criar") e a do
 // «Original» (rótulo num <span> dentro do botão — o innerText do botão é o mesmo).
 (() => {
-  const VERSAO = 5;
+  const VERSAO = 6;
   if (self.SP && self.SP.versao === VERSAO) return;
 
   const INVIS = /[​‌‍﻿⁠]/g;
@@ -126,23 +126,54 @@
       return { percentual: null, texto: pronto || '', anexo: true, pronto: !!pronto };
     },
 
-    /** Só rótulos explícitos do AUTOR no compositor, nunca o texto da legenda
-     * nem o nome da página visto no feed ou no seletor de perfis. */
+    /** Autor do compositor: rótulo explícito, pergunta do editor ou cabeçalho
+     * antes dele. Nunca usa a legenda, o feed ou outro diálogo como prova. */
     facebookComo(nome) {
       const nomes = [];
+      const registrar = s => { const n = norm(s); if (n) nomes.push(n); };
       const prefixo = /^(?:Posting as|Publicar como|Publicando como|A publicar como)\s*:?\s+(.+)$/i;
+      const pergunta = /^(?:No que você está pensando|What['’]s on your mind|Em que estás a pensar),\s*(.+?)\s*\?$/i;
+      const editorSel = '[contenteditable="true"], [role="textbox"], textarea';
+      const controles = '[role="menu"], [role="listbox"], [role="option"], h1, h2, h3, [role="heading"]';
       for (const dialogo of document.querySelectorAll('[role="dialog"]')) {
-        if (!visivel(dialogo) || !dialogo.querySelector('[contenteditable="true"], [role="textbox"]')) continue;
-        for (const el of dialogo.querySelectorAll('[aria-label], span, strong')) {
-          if (!visivel(el) || el.closest('[contenteditable="true"], [role="textbox"]')) continue;
+        if (!visivel(dialogo)) continue;
+        const editores = Array.from(dialogo.querySelectorAll(editorSel))
+          .filter(el => visivel(el) && el.closest('[role="dialog"]') === dialogo);
+        if (!editores.length) continue;
+        for (const editor of editores) {
+          for (const attr of ['placeholder', 'aria-label', 'data-placeholder']) {
+            const m = norm(editor.getAttribute(attr)).match(pergunta);
+            if (m) registrar(m[1]);
+          }
+        }
+        const editor = editores[0];
+        for (const el of dialogo.querySelectorAll('[aria-label], span, strong, a, [role="link"], img')) {
+          if (!visivel(el) || el.closest('[role="dialog"]') !== dialogo
+              || el.closest(editorSel) || el.querySelector(editorSel)) continue;
           for (const s of [el.getAttribute('aria-label'), el.innerText]) {
             const m = norm(s).match(prefixo);
-            if (m) nomes.push(norm(m[1]));
+            if (m) registrar(m[1]);
+          }
+          // O cabeçalho do autor precede o editor. Rótulos da audiência e
+          // títulos/botões não são nomes; os anexos depois do editor também não.
+          if (!(el.compareDocumentPosition(editor) & Node.DOCUMENT_POSITION_FOLLOWING)
+              || el.closest(controles)) continue;
+          const botao = el.closest('button, [role="button"]');
+          if (botao && !botao.querySelector('img')) continue;
+          if (el.matches('img')) {
+            for (const attr of ['aria-label', 'alt']) {
+              const s = norm(el.getAttribute(attr));
+              if (!/^(?:profile picture|profile photo|foto d[oe] perfil|imagem d[oe] perfil)$/i.test(s)) registrar(s);
+            }
+          } else if (el.matches('span, strong, a, [role="link"]')
+              && !el.querySelector('span, strong, a, [role="link"], img')
+              && !prefixo.test(norm(el.innerText))) {
+            registrar(el.innerText);
           }
         }
       }
       const unicos = [...new Set(nomes.map(n => n.toLocaleLowerCase()))];
-      return { ok: unicos.length === 1 && unicos[0] === norm(nome).toLocaleLowerCase(), nomes };
+      return { ok: unicos.length === 1 && unicos[0] === norm(nome).toLocaleLowerCase(), nomes: [...new Set(nomes)] };
     },
 
     /** O MEDIDOR da extensão: o que está na tela quando uma etapa falha.

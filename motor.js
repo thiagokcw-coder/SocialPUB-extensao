@@ -135,7 +135,11 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     if (!R.perfil) return;
     const nome = String(opcoes.facebookPagina || '').trim();
     const lido = nome ? await naAba('facebookComo', nome) : null;
-    if (!lido || !lido.ok) throw new EtapaFalhou(`Facebook não está como a página ${nome || '(configure a página na persona)'}`);
+    if (!lido || !lido.ok) {
+      log('autores encontrados no compositor: ' + (lido && lido.nomes && lido.nomes.length
+        ? lido.nomes.map(n => JSON.stringify(n)).join(', ') : '(nenhum)'), 'er');
+      throw new EtapaFalhou(`Facebook não está como a página ${nome || '(configure a página na persona)'}`);
+    }
     log(`✓ Facebook está como a página ${nome}`, 'ok');
   }
 

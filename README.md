@@ -197,6 +197,14 @@ senha.
 
 ## Testes
 
+**0.8.13 — autor da página no Facebook:** a conferência aceita o nome no
+cabeçalho anterior ao editor, a imagem do autor e o placeholder/aria-label
+personalizado («No que você está pensando, …?», «What's on your mind, …?» e
+«Em que estás a pensar, …?»), além de «Publicar como/Posting as». Nomes
+conflitantes continuam bloqueando a publicação e aparecem no relatório.
+`python tests/test_facebook_autor.py` valida esses sinais e as recusas com
+réplicas locais, incluindo nomes no feed, na legenda e em outro diálogo.
+
 **0.8.12 — vigia do X sem falso «0%»; criar post como página no Facebook:** o
 progresso do X é lido só dentro do anexo; «Ready/Pronto/Concluído» é sucesso;
 sem percentual com o anexo na tela é «processando», não 0%; o prazo de 30 s
