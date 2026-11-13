@@ -24,6 +24,87 @@ function nomesDeColaboradores(texto) {
   return nomes;
 }
 
+// ── contas (uma por rede, por cookies) ───────────────────────────────────
+function _esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+async function _contas() { return (await chrome.storage.local.get({ contas: {} })).contas; }
+
+async function desenharContas() {
+  const contas = await _contas();
+  const n = ORDEM_REDES.filter(id => contas[id]).length;
+  $('contas-resumo').textContent = `— ${n} de ${ORDEM_REDES.length} guardada(s)`;
+  $('contas').innerHTML = ORDEM_REDES.map(id => {
+    const c = contas[id];
+    const estado = c
+      ? `<span class="ok">${c.usuario ? '@' + _esc(c.usuario) + ' · ' : ''}${c.cookies.length} cookie(s) · ${_esc(c.salvo_em)}</span>`
+      : '<span class="dica">nenhuma guardada</span>';
+    return `<div class="conta" data-rede="${id}">
+      <div class="conta-topo"><b>${_esc(RECEITAS[id].nome)}</b> ${estado}</div>
+      <input type="text" class="usuario" placeholder="@ da conta (só para você lembrar)" value="${c ? _esc(c.usuario) : ''}" style="margin-top:6px">
+      <textarea class="ck" placeholder='[{"domain":".${SP_COOKIES[id].dominios[0]}","name":"…","value":"…"}] — exportado pelo Cookie-Editor'></textarea>
+      <div class="acoes">
+        <button class="salvar">Salvar e entrar</button>
+        ${c ? '<button class="sec entrar">Entrar de novo</button><button class="sec apagar">Esquecer</button>' : ''}
+        <button class="sec abrir">Abrir ${_esc(RECEITAS[id].nome)}</button>
+      </div>
+      <div class="dica res"></div>
+    </div>`;
+  }).join('');
+}
+
+function _relatarEntrada(div, r, faltando) {
+  const recus = r.recusados.length ? ` · ${r.recusados.length} recusado(s): ${r.recusados.map(x => x.name).join(', ')}` : '';
+  const falta = faltando && faltando.length
+    ? `<div class="am">⚠ não vieram ${_esc(faltando.join(', '))} — normalmente são eles que autenticam; exporte de novo na página logada</div>` : '';
+  div.querySelector('.res').innerHTML =
+    `<span class="${r.recusados.length ? 'am' : 'ok'}">✓ ${r.gravados} cookie(s) gravado(s) no navegador (${r.apagados} da sessão anterior apagados)${_esc(recus)} — clique em Abrir para conferir</span>` + falta;
+}
+
+$('contas').addEventListener('click', async ev => {
+  const div = ev.target.closest('.conta');
+  if (!div || ev.target.tagName !== 'BUTTON') return;
+  const rede = div.dataset.rede;
+  const res = div.querySelector('.res');
+  try {
+    if (ev.target.classList.contains('abrir')) {
+      await chrome.tabs.create({ url: RECEITAS[rede].url.replace(/\/(compose\/post|tiktokstudio\/upload|post\/create)$/, '/'), active: true });
+      return;
+    }
+    if (ev.target.classList.contains('apagar')) {
+      if (!confirm(`Esquecer a conta do ${RECEITAS[rede].nome} guardada na extensão? (A sessão que já está no navegador continua.)`)) return;
+      const contas = await _contas();
+      delete contas[rede];
+      await chrome.storage.local.set({ contas });
+      await desenharContas();
+      return;
+    }
+    if (ev.target.classList.contains('entrar')) {
+      const c = (await _contas())[rede];
+      const r = await spEntrar(rede, c.cookies);
+      _relatarEntrada(div, r, null);
+      return;
+    }
+    // Salvar e entrar
+    const lido = spLerCookies(div.querySelector('.ck').value, rede);
+    const r = await spEntrar(rede, lido.cookies);
+    const contas = await _contas();
+    contas[rede] = {
+      usuario: div.querySelector('.usuario').value.trim().replace(/^@/, ''),
+      cookies: lido.cookies,
+      salvo_em: new Date().toLocaleString('pt-BR'),
+    };
+    await chrome.storage.local.set({ contas });
+    await desenharContas();
+    _relatarEntrada(document.querySelector(`.conta[data-rede="${rede}"]`), r, lido.faltando);
+  } catch (e) {
+    res.innerHTML = `<span class="er">✗ ${_esc(e && e.message ? e.message : e)}</span>`;
+  }
+});
+
+desenharContas();
+
 // ── redes ────────────────────────────────────────────────────────────────
 for (const id of ORDEM_REDES) {
   const R = RECEITAS[id];
@@ -57,7 +138,6 @@ $('ir').addEventListener('click', async () => {
   const texto = $('leg').value;
   const url = $('url').value.trim();
   const local = $('arq').files[0] || null;
-  const metodo = document.querySelector('input[name=metodo]:checked').value;
   $('log').textContent = '';
   if (!redes.length) { log('Marque pelo menos uma rede.', 'am'); return; }
   if (!texto && !url && !local) { log('Escreva uma legenda, cole um link ou escolha um arquivo.', 'am'); return; }
@@ -95,7 +175,7 @@ $('ir').addEventListener('click', async () => {
     for (const id of redes) {
       log('');
       resultados.push(await prepararRede(id, midia, texto,
-        { metodo, colaboradores: id === 'instagram' ? colaboradores : [], log }));
+        { colaboradores: id === 'instagram' ? colaboradores : [], log }));
     }
 
     log('');

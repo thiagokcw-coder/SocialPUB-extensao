@@ -29,6 +29,22 @@ Telegram.
 **Atualizar:** baixe de novo, substitua a pasta e clique em ↻ no card da
 extensão em `chrome://extensions`.
 
+## Contas (uma por rede, por cookies)
+
+No topo do painel, **Contas**: para cada rede, cole os cookies exportados pelo
+**Cookie-Editor** (na página da rede, logada; exportar como JSON) e clique
+**Salvar e entrar**. A extensão apaga a sessão que estiver no navegador para
+aquela rede e grava a da conta — o navegador fica logado sem senha.
+
+- **Entrar de novo** regrava a conta guardada (se a sessão cair do navegador).
+- **Esquecer** apaga a conta da extensão (a sessão no navegador continua).
+- Avisa se faltarem os cookies que autenticam (`auth_token`/`ct0` no X,
+  `sessionid` no Instagram, `c_user`/`xs` no Facebook…).
+- O Threads troca só a sessão do Threads — não desloga o Instagram.
+- ⚠ Os cookies ficam guardados **só nesta extensão, neste navegador**, e dão
+  acesso total às contas. Nunca vão para o GitHub. Não compartilhe o perfil do
+  navegador.
+
 ## Usar
 
 1. Clique no ícone da extensão → abre o painel numa aba.
@@ -50,9 +66,9 @@ extensão usa a API de depuração do Chrome (`chrome.debugger`): teclas e cliqu
 **reais**, como os de uma pessoa. Enquanto cada rede é preparada, o Chrome
 mostra a faixa amarela «uma extensão está depurando este navegador» — é isso.
 
-**Medido no X (13/11/2026):** pelo teclado real (método B) a #hashtag fica
-azul, como digitada; pelo comando de texto do navegador (A) fica branca — o
-editor não processa. **B é o padrão;** A fica no painel só para comparar.
+**Medido no X (13/11/2026):** pelo teclado real a #hashtag fica azul, como
+digitada; pelo comando de texto do navegador (`execCommand`) ficava branca — o
+editor não processava. Por isso a extensão só escreve pelo teclado real.
 
 ## Vídeo por link
 
@@ -66,5 +82,6 @@ editor não processa. **B é o padrão;** A fica no painel só para comparar.
 
 No repositório do SocialPUB: `tests/test_extensao.py` roda o motor inteiro com
 cliques e teclas reais contra réplicas do compositor de cada rede (34
-verificações), e `tests/test_extensao_link.py` testa o download por link (7).
+verificações), `tests/test_extensao_link.py` testa o download por link (7) e
+`tests/test_extensao_cookies.py` as contas por cookies (18).
 As réplicas **não** provam o DOM real das redes — isso só o uso diz.

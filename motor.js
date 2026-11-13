@@ -45,8 +45,8 @@ class EtapaFalhou extends Error {}
 
 /**
  * Prepara a publicação numa rede e para antes do botão final.
- * `midia` = {nome, tipo, b64} ou null; `opcoes` = {metodo: 'teclado'|'texto',
- * colaboradores: ['a', 'b'], log: fn}.
+ * `midia` = {nome, tipo, b64} ou null; `opcoes` = {colaboradores: ['a', 'b'],
+ * log: fn}.
  */
 async function prepararRede(redeId, midia, texto, opcoes) {
   const R = RECEITAS[redeId];
@@ -152,18 +152,14 @@ async function prepararRede(redeId, midia, texto, opcoes) {
 
     // ── 5. legenda ───────────────────────────────────────────────────────
     if (texto) {
-      if (opcoes.metodo === 'texto') {
-        const f = await naAba('focar', R.legenda, ESPERA_PADRAO_MS);
-        if (!f || !f.ok) throw new EtapaFalhou('legenda: ' + ((f && f.erro) || 'sem resposta'));
-        await naAba('escreverTexto', texto);
-      } else {
-        // Clique REAL no editor antes de escrever: foco por script não basta
-        // em todo editor, e o aviso que cobre a tela pegaria as teclas.
-        if (R.dispensar && await naAba('existe', R.dispensar)) await dispensarAvisos(0);
-        await clicar(R.legenda, ESPERA_PADRAO_MS, 'campo da legenda');
-        await naAba('focar', R.legenda, 2000);
-        await spEscreverTeclas(cmd, texto);
-      }
+      // Clique REAL no editor antes de escrever: foco por script não basta
+      // em todo editor, e o aviso que cobre a tela pegaria as teclas.
+      // Teclado real sempre: o comando de texto do navegador deixou a #hashtag
+      // do X BRANCA (13/11) — o editor não processa o que não foi digitado.
+      if (R.dispensar && await naAba('existe', R.dispensar)) await dispensarAvisos(0);
+      await clicar(R.legenda, ESPERA_PADRAO_MS, 'campo da legenda');
+      await naAba('focar', R.legenda, 2000);
+      await spEscreverTeclas(cmd, texto);
       log('✓ legenda escrita', 'ok');
     }
 

@@ -131,18 +131,6 @@
       return { ok: true, idx: a.idx };
     },
 
-    /** Método A (comparação): comando de texto do navegador. */
-    escreverTexto(texto) {
-      document.execCommand('selectAll', false, null);
-      document.execCommand('delete', false, null);
-      const linhas = String(texto).split('\n');
-      for (let i = 0; i < linhas.length; i++) {
-        if (i > 0) document.execCommand('insertParagraph', false, null);
-        if (linhas[i]) document.execCommand('insertText', false, linhas[i]);
-      }
-      return { ok: true };
-    },
-
     valor(cands) {
       const a = achar(cands, false);
       return a ? (a.el.value != null ? a.el.value : a.el.innerText) : null;

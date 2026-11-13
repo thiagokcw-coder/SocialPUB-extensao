@@ -19,19 +19,29 @@
   .redes { display:flex; flex-wrap:wrap; gap:8px; }
   .rede { display:flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid var(--bd); border-radius:8px; cursor:pointer; }
   .rede small { color: var(--mt); }
-  .metodo { display:flex; gap:10px; align-items:flex-start; padding:8px; border-radius:8px; cursor:pointer; }
-  .metodo:hover { background: var(--bg); }
-  .metodo small { display:block; color:var(--mt); }
   button { background:var(--ac); color:#fff; border:0; border-radius:8px; padding:10px 16px; font:inherit; font-weight:600; cursor:pointer; }
   button:disabled { opacity:.5; cursor:default; }
   #log { white-space:pre-wrap; font:12px/1.5 ui-monospace, Consolas, monospace; color:var(--mt); min-height:40px; }
+  details.caixa summary { cursor:pointer; }
+  .conta { border-top:1px solid var(--bd); padding:10px 0; }
+  .conta-topo { display:flex; justify-content:space-between; gap:8px; align-items:baseline; }
+  .conta textarea { min-height: 54px; margin-top:6px; font:12px ui-monospace, Consolas, monospace; }
+  .conta .acoes { display:flex; gap:6px; margin-top:6px; flex-wrap:wrap; }
+  .conta button { padding:6px 10px; font-size:12px; }
+  button.sec { background: transparent; border:1px solid var(--bd); color: var(--tx); }
   .ok { color: var(--ok); } .er { color: var(--er); } .am { color: var(--am); }
 </style>
 </head>
 <body>
 <main>
   <h1>Social<span>PUB</span></h1>
-  <div class="sub">Prepara a publicação em cada rede marcada — anexa, escreve, confere — e <b>para antes de publicar</b>. Quem clica em publicar é você.</div>
+  <div class="sub">Prepara a publicação em cada rede marcada — anexa, escreve, confere — e <b>para antes de publicar</b>. Quem clica em publicar é você. Enquanto cada rede é preparada, o Chrome mostra a faixa amarela "está depurando": são os cliques e as teclas reais.</div>
+
+  <details class="caixa" id="contas-caixa">
+    <summary><b>Contas</b> <span class="dica" id="contas-resumo"></span></summary>
+    <div class="dica" style="margin:8px 0 10px">Uma conta por rede. Cole os cookies exportados pelo <b>Cookie-Editor</b> na página da rede, logada, e clique <b>Salvar e entrar</b>: a sessão entra neste navegador sem senha, substituindo a que estiver nele para aquela rede. Os cookies ficam guardados <b>só nesta extensão, neste navegador</b> — dão acesso total à conta; não compartilhe o perfil do navegador.</div>
+    <div id="contas"></div>
+  </details>
 
   <div class="caixa">
     <label class="t">Redes</label>
@@ -59,14 +69,6 @@
     <div class="dica">Vazio = sem convite. Se a sugestão de um @ não aparecer, a aba do Instagram fica aberta para você convidar à mão.</div>
   </div>
 
-  <div class="caixa">
-    <label class="t">Como escrever</label>
-    <label class="metodo"><input type="radio" name="metodo" value="teclado" checked>
-      <span><b>B · Teclado real</b> — o padrão<small>Teclas e cliques reais pela API de depuração, como no app. Enquanto cada rede é preparada, o Chrome mostra a faixa amarela "está depurando". Medido no X em 13/11: a #hashtag fica azul.</small></span></label>
-    <label class="metodo"><input type="radio" name="metodo" value="texto">
-      <span><b>A · Texto do navegador</b><small>Só a legenda muda de método (os cliques continuam reais). No X (13/11) a #hashtag ficou BRANCA — o editor não processou. Só para comparar.</small></span></label>
-  </div>
-
   <button id="ir">Preparar nas redes marcadas</button>
 
   <div class="caixa" style="margin-top:12px">
@@ -77,6 +79,7 @@
 <script src="receitas.js"></script>
 <script src="arquivo.js"></script>
 <script src="teclado.js"></script>
+<script src="cookies.js"></script>
 <script src="motor.js"></script>
 <script src="painel.js"></script>
 </body>
