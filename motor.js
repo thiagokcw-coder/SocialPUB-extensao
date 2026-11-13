@@ -279,7 +279,18 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     return res;
   } catch (e) {
     log('✗ ' + (e instanceof EtapaFalhou ? e.message : 'erro: ' + (e && e.message ? e.message : e)) + ' — a aba ficou aberta', 'er');
-    return { rede: redeId, erro: String(e && e.message ? e.message : e) };
+    const out = { rede: redeId, erro: String(e && e.message ? e.message : e) };
+    // MEDIR a tela em que parou, em vez de teorizar (a regra do projeto). O
+    // diagnóstico vai no resultado; o painel oferece copiar.
+    try {
+      const d = await naAba('medir');
+      if (d) {
+        out.diagnostico = Object.assign({ rede: redeId, quando: new Date().toISOString(), erro: out.erro }, d);
+        log(`   tela: ${d.url} · idioma ${d.idioma} · janela ${d.janela} · ${d.dialogos.length} diálogo(s) · ${d.clicaveis.length} clicável(is)`
+            + (d.parece_login ? ' · ⚠ PARECE TELA DE LOGIN — a sessão não valeu' : ''), d.parece_login ? 'er' : 'am');
+      }
+    } catch (e2) { /* a aba pode ter fechado; o erro acima já diz o que houve */ }
+    return out;
   } finally {
     chrome.debugger.onDetach && chrome.debugger.onDetach.removeListener(aoSoltar);
     try { await chrome.debugger.detach(alvo); } catch (e) { /* já soltou */ }

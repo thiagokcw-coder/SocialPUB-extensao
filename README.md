@@ -133,6 +133,15 @@ mostra a faixa amarela «uma extensão está depurando este navegador» — é i
 digitada; pelo comando de texto do navegador (`execCommand`) ficava branca — o
 editor não processava. Por isso a extensão só escreve pelo teclado real.
 
+## Quando uma rede para no meio: o diagnóstico
+
+A aba da rede fica aberta e o relatório mostra o que a extensão viu na tela
+(endereço, idioma, tamanho da janela, se parece tela de login). No resumo,
+**📋 Copiar diagnóstico** copia a leitura completa — os diálogos abertos e os
+botões e links visíveis com os seus nomes. É com isso que a receita é corrigida:
+medir, não adivinhar. O diagnóstico **nunca** traz valor de campo, cookie ou
+senha.
+
 ## Vídeo por link
 
 - O link tem de abrir o **arquivo** (`.mp4`, `.jpg`…), não uma página com o

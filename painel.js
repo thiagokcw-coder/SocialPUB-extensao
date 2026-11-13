@@ -15,6 +15,20 @@ function log(msg, cls) {
   linha.scrollIntoView({ block: 'nearest' });
 }
 
+/** Botão no relatório que copia o que a extensão viu na tela em que parou —
+ * é com isso que se corrige a receita (medir, não adivinhar). */
+function botaoDiagnostico(nome, diag) {
+  const b = document.createElement('button');
+  b.className = 'sec diag';
+  b.textContent = `📋 Copiar diagnóstico — ${nome}`;
+  b.addEventListener('click', async () => {
+    const texto = JSON.stringify(diag, null, 1);
+    try { await navigator.clipboard.writeText(texto); b.textContent = `✓ diagnóstico do ${nome} copiado — cole na conversa`; }
+    catch (e) { const ta = document.createElement('textarea'); ta.value = texto; b.after(ta); ta.select(); }
+  });
+  $('log').appendChild(b);
+}
+
 function _esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -407,7 +421,10 @@ $('ir').addEventListener('click', async () => {
       else if (r.semSessao) log(`${nome}: não entrou na conta — nada foi feito nela`, 'er');
       else if (r.longa) log(`${nome}: legenda acima do limite — não preparada`, 'am');
       else if (r.pulada) log(`${nome}: pulada (tipo de mídia)`, 'am');
-      else if (r.erro) log(`${nome}: parou no meio — aba aberta`, 'er');
+      else if (r.erro) {
+        log(`${nome}: parou no meio — aba aberta`, 'er');
+        if (r.diagnostico) botaoDiagnostico(nome, r.diagnostico);
+      }
       else if (r.legendaOk === false) log(`${nome}: legenda NÃO conferiu — ${publicar ? 'não publiquei; ' : ''}olhe a aba`, 'er');
       else if (r.publicou) log(`${nome}: PUBLICADO`, 'ok');
       else if (r.clicou) log(`${nome}: cliquei em publicar e não deu para confirmar — CONFIRA na aba antes de publicar de novo`, 'am');

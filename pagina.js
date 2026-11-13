@@ -88,6 +88,34 @@
 
     existe(cands) { return !!achar(cands, true); },
 
+    /** O MEDIDOR da extensão: o que está na tela quando uma etapa falha.
+     * Endereço, idioma, tamanho da janela, se parece login, os diálogos abertos
+     * e os clicáveis visíveis com texto e nomes (aria-label, inclusive dos
+     * ícones). NUNCA lê valor de campo, cookie nem armazenamento — o
+     * diagnóstico é copiado e enviado adiante. */
+    medir() {
+      const sel = 'a, button, [role="button"], [role="link"], [role="menuitem"], [role="tab"]';
+      const clicaveis = Array.from(document.querySelectorAll(sel)).filter(visivel).slice(0, 80).map(e => ({
+        tag: e.tagName.toLowerCase(),
+        papel: e.getAttribute('role') || '',
+        texto: norm(e.innerText).slice(0, 60),
+        aria: (e.getAttribute('aria-label') || '').slice(0, 60),
+        icones: Array.from(e.querySelectorAll('svg[aria-label]')).map(s => s.getAttribute('aria-label')).slice(0, 3),
+      }));
+      const dialogos = Array.from(document.querySelectorAll('[role="dialog"]')).filter(visivel)
+        .map(d => d.getAttribute('aria-label') || norm(d.innerText).slice(0, 60));
+      return {
+        url: location.origin + location.pathname,
+        titulo: document.title.slice(0, 80),
+        idioma: document.documentElement.lang || navigator.language,
+        janela: innerWidth + 'x' + innerHeight,
+        parece_login: /\/(accounts\/login|login|signin|challenge|checkpoint|suspended)/i.test(location.pathname)
+          || !!document.querySelector('input[type="password"]'),
+        dialogos,
+        clicaveis,
+      };
+    },
+
     /** O botão de publicar: existe e está habilitado? (desabilitado enquanto
      * o vídeo sobe — é preciso ESPERAR, não perguntar uma vez). */
     botao(cands) {
