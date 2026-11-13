@@ -215,7 +215,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     for (const u of colabs) {
       await clicar(R.colaboradores.campo, 10000, 'campo «Adicionar colaboradores»');
       await spLimparCampo(cmd);
-      await spDigitar(cmd, u, 60);
+      await spDigitar(cmd, u);
       const p = await naAba('localizar', _motorTrocar(R.colaboradores.sugestao, u), 10000);
       if (!p || !p.ok) throw new EtapaFalhou(`digitei @${u} e a sugestão com esse nome não apareceu (a lista não foi medida, ou a conta não aceita convite) — convide na aba e publique`);
       await spClicarEm(cmd, p.x, p.y);

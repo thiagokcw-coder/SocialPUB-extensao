@@ -48,14 +48,15 @@ async function spLimparCampo(cmd) {
   await _spTecla(cmd, 'Backspace', 'Backspace', 8, 0);
 }
 
-/** Digita letra a letra (para campos de busca, como o @ do colaborador: a
- * lista de sugestões reage a cada tecla). */
-async function spDigitar(cmd, texto, pausaMs) {
-  for (const c of String(texto)) {
-    await cmd('Input.dispatchKeyEvent', { type: 'keyDown', key: c, text: c, unmodifiedText: c });
-    await cmd('Input.dispatchKeyEvent', { type: 'keyUp', key: c });
-    await _spPausa(pausaMs || 60);
-  }
+/** Escreve num campo de BUSCA (o @ do colaborador), rápido: tudo menos a última
+ * letra entra de uma vez, e a última vai como TECLA de verdade — a lista de
+ * sugestões reage à tecla como reage a uma pessoa. Letra a letra com 60ms de
+ * pausa deixava o colab «lento» (13/11). */
+async function spDigitar(cmd, texto) {
+  const t = String(texto || '');
+  if (!t) return;
+  if (t.length > 1) await cmd('Input.insertText', { text: t.slice(0, -1) });
+  await _spCaractere(cmd, t.slice(-1));
 }
 
 /** Escreve `texto` onde estiver o foco.
