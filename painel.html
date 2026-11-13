@@ -33,6 +33,7 @@
   .persona-barra select { flex:1; min-width:200px; background:var(--bg); color:var(--tx); border:1px solid var(--bd); border-radius:8px; padding:8px; font:inherit; }
   .persona-barra button { padding:6px 10px; font-size:12px; }
   .rede.sem { opacity:.55; }
+  .publicar-auto { display:flex; gap:10px; align-items:flex-start; cursor:pointer; }
   .leg-rede { border-top:1px solid var(--bd); padding:8px 0; }
   .leg-rede .topo { display:flex; justify-content:space-between; gap:8px; align-items:center; font-size:13px; }
   .leg-rede textarea { min-height:70px; margin-top:6px; }
@@ -43,7 +44,7 @@
 <body>
 <main>
   <h1>Social<span>PUB</span></h1>
-  <div class="sub">Prepara a publicação em cada rede marcada — anexa, escreve, confere — e <b>para antes de publicar</b>. Quem clica em publicar é você. Enquanto cada rede é preparada, o Chrome mostra a faixa amarela "está depurando": são os cliques e as teclas reais.</div>
+  <div class="sub">Prepara a publicação em cada rede marcada — anexa, escreve, confere — e <b>publica</b> se «Publicar sozinho» estiver ligado; senão, para antes do botão final. Enquanto cada rede é preparada, o Chrome mostra a faixa amarela "está depurando": são os cliques e as teclas reais.</div>
 
   <div class="caixa persona-barra">
     <label class="t" for="pers">Persona — quem publica</label>
@@ -89,6 +90,10 @@
     <input id="colab" type="text" placeholder="@conta1, @conta2">
     <div class="dica">Vazio = sem convite. Se a sugestão de um @ não aparecer, a aba do Instagram fica aberta para você convidar à mão.</div>
   </div>
+
+  <label class="caixa publicar-auto"><input type="checkbox" id="publicar-auto">
+    <span><b>Publicar sozinho depois de preparar</b>
+    <small class="dica" style="display:block">Cada rede é preparada, conferida e publicada. Rede cuja legenda não conferiu <b>não</b> é publicada. Desligado: para antes do botão final, e quem publica é você.</small></span></label>
 
   <button id="ir">Preparar nas redes marcadas</button>
 

@@ -88,6 +88,17 @@
 
     existe(cands) { return !!achar(cands, true); },
 
+    /** O botão de publicar: existe e está habilitado? (desabilitado enquanto
+     * o vídeo sobe — é preciso ESPERAR, não perguntar uma vez). */
+    botao(cands) {
+      const a = achar(cands, true);
+      if (!a) return { existe: false, habilitado: false };
+      const el = a.el;
+      const off = el.disabled || el.getAttribute('aria-disabled') === 'true'
+        || (el.closest('[aria-disabled="true"]') !== null);
+      return { existe: true, habilitado: !off };
+    },
+
     async sumiu(cands, prazoMs) {
       const fim = Date.now() + prazoMs;
       while (Date.now() < fim) {

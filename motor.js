@@ -1,8 +1,10 @@
-// O motor: executa a receita de UMA rede e PARA antes de publicar.
+// O motor: executa a receita de UMA rede. Sem `opcoes.publicar`, PARA antes do
+// botão final; com ele, publica — só se a legenda conferiu.
 //
-// Ordem (a mesma do `publicador.preencher` do app): abrir o compositor →
-// anexar → passos (OK, corte, Avançar…) → fechar avisos → escrever a legenda →
-// colaboradores → conferir. Cada etapa que falha diz qual tela faltou, e a aba
+// Ordem (a mesma do `publicador.preencher` + `apertar_publicar` do app): abrir
+// o compositor → anexar → passos (OK, corte, Avançar…) → fechar avisos →
+// escrever a legenda → colaboradores → conferir → [publicar → confirmar →
+// ver o botão sumir]. Cada etapa que falha diz qual tela faltou, e a aba
 // fica ABERTA com o que já foi feito — fechar jogaria fora o upload.
 //
 // Cliques e teclas vão pela API de depuração (eventos reais). A faixa amarela
@@ -44,8 +46,8 @@ function _motorTrocar(cands, u) {
 class EtapaFalhou extends Error {}
 
 /**
- * Prepara a publicação numa rede e para antes do botão final.
- * `midia` = {nome, tipo, b64} ou null; `opcoes` = {colaboradores: ['a', 'b'],
+ * Prepara a publicação numa rede; publica se `opcoes.publicar`.
+ * `midia` = {nome, tipo, b64} ou null; `opcoes` = {publicar: bool, colaboradores: ['a', 'b'],
  * log: fn}.
  */
 async function prepararRede(redeId, midia, texto, opcoes) {
@@ -188,12 +190,61 @@ async function prepararRede(redeId, midia, texto, opcoes) {
           res.legendaOk ? 'ok' : 'er');
       if (!res.legendaOk) log('   o editor ficou com: ' + JSON.stringify(lido.texto), 'er');
     }
-    if (lido.botao.existe) {
-      log(lido.botao.habilitado ? '✓ pronto: botão de publicar habilitado — NÃO cliquei' : '? botão de publicar ainda desabilitado (o vídeo pode estar subindo)',
-          lido.botao.habilitado ? 'ok' : 'am');
-    } else {
-      log('? não achei o botão de publicar', 'am');
+    if (!opcoes.publicar) {
+      if (lido.botao.existe) {
+        log(lido.botao.habilitado ? '✓ pronto: botão de publicar habilitado — NÃO cliquei' : '? botão de publicar ainda desabilitado (o vídeo pode estar subindo)',
+            lido.botao.habilitado ? 'ok' : 'am');
+      } else {
+        log('? não achei o botão de publicar', 'am');
+      }
+      return res;
     }
+
+    // ── 8. publicar (só com «Publicar sozinho» ligado) ───────────────────
+    // A mesma regra do `apertar_publicar` do app.
+    if (res.legendaOk === false) {
+      log('✗ NÃO publiquei: a legenda não conferiu — confira a aba', 'er');
+      return res;
+    }
+    // ESPERAR o botão habilitar, não perguntar uma vez: logo depois do upload
+    // ele está desabilitado em todas as redes (o vídeo ainda sobe).
+    const esperaS = R.espera_botao_s || 180;
+    const fimB = Date.now() + esperaS * 1000;
+    let b = await naAba('botao', R.publicar);
+    if (!b.habilitado) log(`esperando o botão de publicar habilitar (até ${esperaS}s) …`);
+    while (!b.habilitado) {
+      if (Date.now() > fimB) throw new EtapaFalhou(`o botão de publicar seguiu ${b.existe ? 'desabilitado' : 'fora da tela'} por ${esperaS}s — nada foi publicado`);
+      await new Promise(r => setTimeout(r, 1000));
+      b = await naAba('botao', R.publicar);
+    }
+    // aviso por cima do botão comeria o clique (TikTok, 10/11)
+    if (R.dispensar && await naAba('existe', R.dispensar)) await dispensarAvisos(0);
+    await clicar(R.publicar, 5000, 'botão de publicar');
+    res.clicou = true;
+    log('cliquei em publicar …');
+
+    // confirmação depois do clique: uma janela curta e UM clique só
+    if (R.confirmar) {
+      const fimC = Date.now() + (R.confirmar_espera_s || 0) * 1000;
+      for (;;) {
+        if (await naAba('existe', R.confirmar)) {
+          const c = await clicar(R.confirmar, 1000, 'confirmação');
+          res.confirmou = c.texto;
+          log(`respondi «${c.texto}»`);
+          break;
+        }
+        if (Date.now() >= fimC) break;
+        await new Promise(r => setTimeout(r, 300));
+      }
+    }
+
+    // CONFIRMAR em vez de afirmar: nas redes medidas o botão (ou o diálogo em
+    // volta) SOME quando a publicação é aceita. Não sumiu = "incerto" — a pessoa
+    // confere antes de publicar de novo (publicar duas vezes é o risco aqui).
+    res.publicou = await naAba('sumiu', R.publicar, 30000);
+    log(res.publicou ? '✓ PUBLICADO: o botão de publicar saiu da tela'
+                     : '? cliquei em publicar e o botão CONTINUA na tela depois de 30s — CONFIRA na aba antes de publicar de novo',
+        res.publicou ? 'ok' : 'am');
     return res;
   } catch (e) {
     log('✗ ' + (e instanceof EtapaFalhou ? e.message : 'erro: ' + (e && e.message ? e.message : e)) + ' — a aba ficou aberta', 'er');

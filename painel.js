@@ -198,7 +198,17 @@ function desenharRedes() {
   });
 }
 
-chrome.storage.local.get({ redes: ['x'] }).then(s => {
+function _rotuloBotao() {
+  $('ir').textContent = $('publicar-auto').checked ? 'Preparar e PUBLICAR nas redes marcadas' : 'Preparar nas redes marcadas';
+}
+$('publicar-auto').addEventListener('change', () => {
+  chrome.storage.local.set({ publicar_auto: $('publicar-auto').checked });
+  _rotuloBotao();
+});
+
+chrome.storage.local.get({ redes: ['x'], publicar_auto: false }).then(s => {
+  $('publicar-auto').checked = !!s.publicar_auto;
+  _rotuloBotao();
   document.querySelectorAll('#redes input').forEach(c => { c.checked = s.redes.includes(c.value); });
   desenharLegendas();   // marcar por código não dispara 'change'
 });
@@ -264,6 +274,7 @@ $('ir').addEventListener('click', async () => {
   const btn = $('ir');
   const p = persona();
   const redes = marcadas();
+  const publicar = $('publicar-auto').checked;
   const url = $('url').value.trim();
   const local = $('arq').files[0] || null;
   $('log').textContent = '';
@@ -286,7 +297,7 @@ $('ir').addEventListener('click', async () => {
   btn.disabled = true;
   const t0 = Date.now();
   try {
-    log(`persona: ${p.nome}`);
+    log(`persona: ${p.nome}` + (publicar ? ' · PUBLICAR SOZINHO ligado' : ' · para antes de publicar'));
     let midia = null;
     if (url) {
       if (!(await permitido)) { log('✗ sem permissão para baixar desse site', 'er'); return; }
@@ -332,7 +343,7 @@ $('ir').addEventListener('click', async () => {
       log(`[${RECEITAS[id].nome}] sessão de ${conta.usuario ? '@' + conta.usuario : p.nome} no navegador (${e.gravados} cookie(s))`
           + (e.recusados.length ? ` · ${e.recusados.length} recusado(s)` : ''), e.recusados.length ? 'am' : 'ok');
       resultados.push(await prepararRede(id, midia, texto,
-        { colaboradores: id === 'instagram' ? colaboradores : [], log }));
+        { publicar, colaboradores: id === 'instagram' ? colaboradores : [], log }));
     }
 
     log('');
@@ -343,7 +354,9 @@ $('ir').addEventListener('click', async () => {
       else if (r.longa) log(`${nome}: legenda acima do limite — não preparada`, 'am');
       else if (r.pulada) log(`${nome}: pulada (tipo de mídia)`, 'am');
       else if (r.erro) log(`${nome}: parou no meio — aba aberta`, 'er');
-      else if (r.legendaOk === false) log(`${nome}: legenda NÃO conferiu — olhe a aba`, 'er');
+      else if (r.legendaOk === false) log(`${nome}: legenda NÃO conferiu — ${publicar ? 'não publiquei; ' : ''}olhe a aba`, 'er');
+      else if (r.publicou) log(`${nome}: PUBLICADO`, 'ok');
+      else if (r.clicou) log(`${nome}: cliquei em publicar e não deu para confirmar — CONFIRA na aba antes de publicar de novo`, 'am');
       else log(`${nome}: pronta para você publicar`, 'ok');
     }
     log(`(${((Date.now() - t0) / 1000).toFixed(0)}s)`);

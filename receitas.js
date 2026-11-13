@@ -2,8 +2,13 @@
 // SocialPUB, traduzidos para o formato que o navegador entende (ver pagina.js:
 // string CSS, ou {css, texto|contem|filhoTexto}).
 //
-// Nenhuma receita clica em publicar. `publicar` serve só para CONFERIR que a
-// tela chegou ao ponto de publicar.
+// `publicar` é o botão final. O motor só clica nele com «Publicar sozinho»
+// ligado no painel — e só depois de a legenda conferir. Sem isso, ele serve
+// para CONFERIR que a tela chegou ao ponto de publicar.
+//
+// `confirmar`: pergunta que a rede abre DEPOIS do clique em publicar (TikTok:
+// «Continuar publicando?» com a verificação de conteúdo ainda rodando —
+// decisão do usuário, 10/11: responder «Publicar agora»).
 //
 // `aceita`: o que cada receita cobre. Não é o que a rede aceita — é o que foi
 // MEDIDO. O Instagram só tem o fluxo do Reel medido; foto e story ficam de fora
@@ -95,6 +100,11 @@ const RECEITAS = {
     // A legenda vem PRÉ-PREENCHIDA com o nome do arquivo: a escrita limpa antes.
     legenda: ['div.caption-editor [contenteditable="true"]', 'div.caption-editor'],
     publicar: ['button[data-e2e="post_video_button"]'],
+    // Texto exato e preferindo dentro do diálogo: a mesma tela tem o rádio
+    // «Agora» em "Quando publicar".
+    confirmar: [{ css: '[role="dialog"] button', texto: 'Publicar agora' }, { css: 'button', texto: 'Publicar agora' },
+                { css: '[role="button"]', texto: 'Publicar agora' }, { css: 'button', texto: 'Post now' }],
+    confirmar_espera_s: 5,
   },
 
   threads: {

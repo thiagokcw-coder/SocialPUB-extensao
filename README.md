@@ -2,7 +2,8 @@
 
 Prepara a mesma publicação em várias redes: abre o compositor de cada uma,
 anexa o vídeo ou a imagem, escreve a legenda, confere o que ficou no editor e
-**para antes de publicar**. Quem clica em publicar é você.
+**publica** — ou para antes do botão final, se «Publicar sozinho» estiver
+desligado.
 
 | rede | o que cobre | passos |
 |---|---|---|
@@ -54,6 +55,21 @@ da outra persona. Os **colaboradores do Instagram** também são por persona.
   acesso total às contas. Nunca vão para o GitHub. Não compartilhe o perfil do
   navegador.
 
+## Publicar sozinho
+
+Com **Publicar sozinho depois de preparar** ligado (fica guardado), cada rede é
+preparada, conferida e publicada — a mesma regra do app:
+
+- só publica se a **legenda conferiu** (o texto inteiro está no editor);
+- **espera o botão habilitar** (até 3 min — enquanto o vídeo sobe ele fica
+  desabilitado), fecha avisos por cima e clica;
+- TikTok: responde «Continuar publicando?» com **Publicar agora**;
+- diz **PUBLICADO** só quando o botão de publicar **sai da tela**. Se o clique
+  sai e o botão continua lá, o resumo manda **conferir na aba antes de publicar
+  de novo** — publicar duas vezes é o risco aqui.
+
+Desligado, a extensão para antes do botão final e quem publica é você.
+
 ## Legenda por rede
 
 Cada rede tem o seu limite: **X 280 · Threads 500 · Instagram 2.200 · TikTok
@@ -102,9 +118,9 @@ editor não processava. Por isso a extensão só escreve pelo teclado real.
 ## Testes
 
 No repositório do SocialPUB: `tests/test_extensao.py` roda o motor inteiro com
-cliques e teclas reais contra réplicas do compositor de cada rede (34
-verificações), `tests/test_extensao_link.py` testa o download por link (7) e
+cliques e teclas reais contra réplicas do compositor de cada rede, preparando e
+publicando (42 verificações), `tests/test_extensao_link.py` testa o download por link (7) e
 `tests/test_extensao_cookies.py` as contas por cookies (18) e
-`tests/test_extensao_personas.py` as personas e a legenda por rede no painel
-de verdade (27).
+`tests/test_extensao_personas.py` as personas, a legenda por rede e o «Publicar
+sozinho» no painel de verdade (32).
 As réplicas **não** provam o DOM real das redes — isso só o uso diz.
