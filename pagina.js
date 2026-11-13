@@ -95,7 +95,16 @@
      * diagnóstico é copiado e enviado adiante. */
     medir() {
       const sel = 'a, button, [role="button"], [role="link"], [role="menuitem"], [role="tab"]';
-      const clicaveis = Array.from(document.querySelectorAll(sel)).filter(visivel).slice(0, 80).map(e => ({
+      // O que está DENTRO de diálogo vem primeiro: é a tela do fluxo. O feed
+      // atrás enchia o diagnóstico de 13/11 com stories e botões de curtir.
+      const todos = Array.from(document.querySelectorAll(sel)).filter(visivel);
+      const noDialogo = todos.filter(e => e.closest('[role="dialog"]'));
+      const ordem = noDialogo.concat(todos.filter(e => !e.closest('[role="dialog"]')));
+      const campos = Array.from(document.querySelectorAll('[role="dialog"] input, [role="dialog"] [contenteditable="true"], [role="dialog"] textarea'))
+        .map(e => ({ tag: e.tagName.toLowerCase(), tipo: e.type || '', name: e.name || '', placeholder: (e.placeholder || '').slice(0, 60),
+                     aria: (e.getAttribute('aria-label') || '').slice(0, 60), visivel: visivel(e) }));
+      const clicaveis = ordem.slice(0, 80).map(e => ({
+        no_dialogo: !!e.closest('[role="dialog"]'),
         tag: e.tagName.toLowerCase(),
         papel: e.getAttribute('role') || '',
         texto: norm(e.innerText).slice(0, 60),
@@ -112,6 +121,8 @@
         parece_login: /\/(accounts\/login|login|signin|challenge|checkpoint|suspended)/i.test(location.pathname)
           || !!document.querySelector('input[type="password"]'),
         dialogos,
+        // campos dos diálogos: tipo, name, placeholder e nome — NUNCA o valor
+        campos_do_dialogo: campos,
         clicaveis,
       };
     },

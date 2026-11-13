@@ -14,6 +14,9 @@ desligado.
 | Facebook | imagem, vídeo, só texto | `facebook.com/post/create` → arquivo → espera a tela certa → legenda |
 
 Os passos e seletores são os **medidos** no app SocialPUB (`publicador.py`).
+Instagram e Threads reconhecem a interface em **português do Brasil, de Portugal
+e inglês** — o mesmo site muda os nomes dos botões conforme o idioma do
+navegador.
 O que não foi medido fica de fora: foto e story no Instagram, YouTube, Kwai e
 Telegram.
 

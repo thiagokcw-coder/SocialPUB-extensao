@@ -34,53 +34,71 @@ const RECEITAS = {
     url: 'https://www.instagram.com/',
     aceita: ['video'],
     legenda_max: 2200,
-    medido_em: '2026-11-09 (app, Chrome)',
-    // «Criar» abre um SUBMENU (Postar · Vídeo ao vivo · Anúncio); só «Postar»
-    // leva ao diálogo. Texto EXATO: «Vídeo ao vivo» não pode ser clicado.
+    medido_em: '2026-11-09 (app, Chrome pt-BR) · 2026-11-13 (extensão, navegador do Grok em pt-PT)',
+    // ⚠ O IDIOMA MUDA OS NOMES. No Chrome do app o Instagram veio em pt-BR
+    // («Novo post», «Criar»); no navegador do Grok veio em pt-PT, MEDIDO pelo
+    // diagnóstico de 13/11: o ícone é «Nova publicação», a barra lateral só
+    // tem ícones (sem a palavra «Criar») e o resto é «Gosto», «Partilhar»,
+    // «Seguinte». Por isso cada nome vai em pt-BR · pt-PT · inglês, e onde dá
+    // a âncora NÃO depende de idioma (o diálogo é o que tem o campo de arquivo;
+    // a legenda é o textbox do diálogo).
+    //
+    // MEDIDO em pt-PT: só o ícone «Nova publicação». As telas seguintes em
+    // pt-PT («Recortar», «Seguinte», «Escreve uma legenda...», «Partilhar») são
+    // ESPERADAS, não medidas: se parar, o diagnóstico diz o nome certo.
     abrir: {
-      clicar: ['a:has(svg[aria-label="Novo post"])', { css: 'a', contem: 'Criar' }],
-      menu: [{ css: '[role="menuitem"]', texto: 'Postar' }, { css: 'a', texto: 'Postar' },
-             { css: 'div[role="button"]', texto: 'Postar' }, { css: 'span', texto: 'Postar' }],
-      esperar: ['[role="dialog"][aria-label="Criar novo post"]'],
+      clicar: ['a:has(svg[aria-label="Novo post"])', 'a:has(svg[aria-label="Nova publicação"])',
+               'a:has(svg[aria-label="New post"])', { css: 'a', contem: 'Criar' }, { css: 'a', contem: 'Create' }],
+      // «Criar» abre um SUBMENU (pt-BR: Postar · Vídeo ao vivo · Anúncio); só a
+      // primeira opção leva ao diálogo. Texto EXATO: a transmissão ao vivo é
+      // vizinha e não pode ser clicada.
+      menu: ['Postar', 'Publicação', 'Publicar', 'Post'].flatMap(t => [
+        { css: '[role="menuitem"]', texto: t }, { css: 'a', texto: t },
+        { css: 'div[role="button"]', texto: t }, { css: 'span', texto: t }]),
+      esperar: ['[role="dialog"][aria-label="Criar novo post"]', '[role="dialog"][aria-label="Criar nova publicação"]',
+                '[role="dialog"][aria-label="Create new post"]', '[role="dialog"]:has(input[type="file"])'],
     },
-    arquivo: ['[role="dialog"][aria-label="Criar novo post"] input[type="file"][accept*="video/mp4"]',
-              '[role="dialog"][aria-label="Criar novo post"] input[type="file"]'],
-    depois_do_arquivo: ['[role="dialog"][aria-label="Cortar"]'],
+    arquivo: ['[role="dialog"] input[type="file"][accept*="video/mp4"]', '[role="dialog"] input[type="file"]'],
+    // a tela de corte: a que tem o botão de escolher o corte
+    depois_do_arquivo: ['[role="dialog"]:has(svg[aria-label="Selecionar corte"])', '[role="dialog"]:has(svg[aria-label="Selecionar recorte"])',
+                        '[role="dialog"]:has(svg[aria-label="Select crop"])', '[role="dialog"][aria-label="Cortar"]',
+                        '[role="dialog"][aria-label="Recortar"]', '[role="dialog"][aria-label="Crop"]'],
     espera_arquivo_s: 60,
     passos: [
       // aviso «posts de vídeo são compartilhados como reels» — só às vezes
       { id: 'aviso_reels', opcional: true, clicar: [{ css: '[role="dialog"] button', texto: 'OK' }], esperar_sumir: true },
-      // A tela «Cortar» NASCE em 1:1: sem isto o Reel sai quadrado (medido em
+      // A tela de corte NASCE em 1:1: sem isto o Reel sai quadrado (medido em
       // 09/11). «Original» mantém a proporção do vídeo.
       { id: 'abrir_corte',
-        clicar: ['[role="dialog"][aria-label="Cortar"] button:has(svg[aria-label="Selecionar corte"])',
-                 '[role="dialog"] button:has(svg[aria-label="Selecionar corte"])',
-                 '[role="dialog"] [aria-label="Selecionar corte"]'],
-        esperar: [{ css: '[role="dialog"][aria-label="Cortar"] [role="button"]', texto: 'Original' },
-                  { css: '[role="dialog"][aria-label="Cortar"] *', texto: 'Original' }] },
+        clicar: ['[role="dialog"] button:has(svg[aria-label="Selecionar corte"])', '[role="dialog"] button:has(svg[aria-label="Selecionar recorte"])',
+                 '[role="dialog"] button:has(svg[aria-label="Select crop"])', '[role="dialog"] [aria-label="Selecionar corte"]'],
+        esperar: [{ css: '[role="dialog"] [role="button"]', texto: 'Original' }, { css: '[role="dialog"] *', texto: 'Original' }] },
       { id: 'corte_original',
-        clicar: [{ css: '[role="dialog"][aria-label="Cortar"] [role="button"]', texto: 'Original' },
-                 { css: '[role="dialog"][aria-label="Cortar"] *', texto: 'Original' }] },
-      { id: 'cortar', clicar: [{ css: '[role="dialog"][aria-label="Cortar"] *', texto: 'Avançar' }],
-        esperar: ['[role="dialog"][aria-label="Editar"]'] },
-      { id: 'editar', clicar: [{ css: '[role="dialog"][aria-label="Editar"] *', texto: 'Avançar' }],
-        esperar: ['div[aria-label="Adicione uma legenda..."]', '[role="dialog"][aria-label="Criar novo post"] div[role="textbox"]'] },
+        clicar: [{ css: '[role="dialog"] [role="button"]', texto: 'Original' }, { css: '[role="dialog"] *', texto: 'Original' }] },
+      { id: 'cortar', clicar: ['Avançar', 'Seguinte', 'Next'].map(t => ({ css: '[role="dialog"] *', texto: t })),
+        esperar: ['[role="dialog"][aria-label="Editar"]', '[role="dialog"][aria-label="Edit"]'] },
+      { id: 'editar', clicar: ['Avançar', 'Seguinte', 'Next'].map(t => ({ css: '[role="dialog"] *', texto: t })),
+        esperar: ['div[aria-label="Adicione uma legenda..."]', 'div[aria-label="Escreve uma legenda..."]',
+                  'div[aria-label="Write a caption..."]', '[role="dialog"] div[role="textbox"][contenteditable="true"]'] },
     ],
-    legenda: ['div[aria-label="Adicione uma legenda..."]',
-              '[role="dialog"][aria-label="Criar novo post"] div[role="textbox"]'],
-    // Convite de collab. O CAMPO é medido (09/11); a LISTA de sugestões não —
-    // o @ é casado por texto exato e só dentro do diálogo (o feed atrás pode ter
-    // post da mesma conta). `{u}` vira o @ na hora.
+    legenda: ['div[aria-label="Adicione uma legenda..."]', 'div[aria-label="Escreve uma legenda..."]',
+              'div[aria-label="Write a caption..."]', '[role="dialog"] div[role="textbox"][contenteditable="true"]',
+              '[role="dialog"] div[role="textbox"]'],
+    // Convite de collab. O CAMPO é medido (09/11) e o `name` não depende de
+    // idioma; a LISTA de sugestões não foi medida — o @ é casado por texto
+    // exato e só dentro do diálogo (o feed atrás pode ter post da mesma conta).
+    // `{u}` vira o @ na hora.
     colaboradores: {
-      campo: ['[role="dialog"][aria-label="Criar novo post"] input[name="creation-collaborator-input"]',
-              '[role="dialog"] input[name="creation-collaborator-input"]',
-              '[role="dialog"] input[placeholder="Adicionar colaboradores"]'],
+      campo: ['[role="dialog"] input[name="creation-collaborator-input"]',
+              '[role="dialog"] input[placeholder="Adicionar colaboradores"]',
+              '[role="dialog"] input[placeholder="Add collaborators"]'],
       sugestao: [{ css: '[role="dialog"] [role="button"]', filhoTexto: '{u}' },
                  { css: '[role="listbox"] *', texto: '{u}' },
                  { css: '[role="dialog"] *', texto: '{u}' }],
     },
-    // Há «Compartilhar» no feed, atrás do diálogo: sem a âncora seria o errado.
-    publicar: [{ css: '[role="dialog"][aria-label="Criar novo post"] *', texto: 'Compartilhar' }],
+    // Há «Partilhar»/«Compartilhar» no feed, atrás do diálogo (ícone sem texto):
+    // só dentro do diálogo, por texto exato.
+    publicar: ['Compartilhar', 'Partilhar', 'Share'].map(t => ({ css: '[role="dialog"] *', texto: t })),
   },
 
   tiktok: {
@@ -125,8 +143,9 @@ const RECEITAS = {
     },
     arquivo: ['[role="dialog"] input[type="file"][accept*="image"]', '[role="dialog"] input[type="file"]'],
     legenda: ['[role="dialog"] div[role="textbox"]'],
-    publicar: [{ css: '[role="dialog"] div[role="button"]', texto: 'Postar' },
-               { css: '[role="dialog"] div[role="button"]', texto: 'Post' }],
+    // pt-BR «Postar»; no navegador do Grok (pt-PT, 13/11, foto do usuário) o
+    // botão é «Publicar» — a leva esperou 180s por um «Postar» que não existia.
+    publicar: ['Postar', 'Publicar', 'Post'].map(t => ({ css: '[role="dialog"] div[role="button"]', texto: t })),
   },
 
   facebook: {
