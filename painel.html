@@ -29,6 +29,10 @@
   .conta .acoes { display:flex; gap:6px; margin-top:6px; flex-wrap:wrap; }
   .conta button { padding:6px 10px; font-size:12px; }
   button.sec { background: transparent; border:1px solid var(--bd); color: var(--tx); }
+  .persona-barra .linha { display:flex; gap:6px; flex-wrap:wrap; }
+  .persona-barra select { flex:1; min-width:200px; background:var(--bg); color:var(--tx); border:1px solid var(--bd); border-radius:8px; padding:8px; font:inherit; }
+  .persona-barra button { padding:6px 10px; font-size:12px; }
+  .rede.sem { opacity:.55; }
   .ok { color: var(--ok); } .er { color: var(--er); } .am { color: var(--am); }
 </style>
 </head>
@@ -37,9 +41,20 @@
   <h1>Social<span>PUB</span></h1>
   <div class="sub">Prepara a publicação em cada rede marcada — anexa, escreve, confere — e <b>para antes de publicar</b>. Quem clica em publicar é você. Enquanto cada rede é preparada, o Chrome mostra a faixa amarela "está depurando": são os cliques e as teclas reais.</div>
 
+  <div class="caixa persona-barra">
+    <label class="t" for="pers">Persona — quem publica</label>
+    <div class="linha">
+      <select id="pers"></select>
+      <button class="sec" id="pers-nova">+ Nova persona</button>
+      <button class="sec" id="pers-renomear">Renomear</button>
+      <button class="sec" id="pers-excluir">Excluir</button>
+    </div>
+    <div class="dica" id="pers-resumo"></div>
+  </div>
+
   <details class="caixa" id="contas-caixa">
-    <summary><b>Contas</b> <span class="dica" id="contas-resumo"></span></summary>
-    <div class="dica" style="margin:8px 0 10px">Uma conta por rede. Cole os cookies exportados pelo <b>Cookie-Editor</b> na página da rede, logada, e clique <b>Salvar e entrar</b>: a sessão entra neste navegador sem senha, substituindo a que estiver nele para aquela rede. Os cookies ficam guardados <b>só nesta extensão, neste navegador</b> — dão acesso total à conta; não compartilhe o perfil do navegador.</div>
+    <summary><b>Contas da persona</b> <span class="dica" id="contas-resumo"></span></summary>
+    <div class="dica" style="margin:8px 0 10px">Uma conta por rede, por persona. Cole os cookies exportados pelo <b>Cookie-Editor</b> na página da rede, logada, e clique <b>Salvar e entrar</b>: a sessão entra neste navegador sem senha, substituindo a que estiver nele para aquela rede. Os cookies ficam guardados <b>só nesta extensão, neste navegador</b> — dão acesso total à conta; não compartilhe o perfil do navegador.</div>
     <div id="contas"></div>
   </details>
 
@@ -64,7 +79,7 @@
   </div>
 
   <div class="caixa">
-    <label class="t" for="colab">Colaboradores no Instagram (collab) — fica salvo</label>
+    <label class="t" for="colab">Colaboradores no Instagram (collab) — <b>desta persona</b>, fica salvo</label>
     <input id="colab" type="text" placeholder="@conta1, @conta2">
     <div class="dica">Vazio = sem convite. Se a sugestão de um @ não aparecer, a aba do Instagram fica aberta para você convidar à mão.</div>
   </div>
@@ -80,6 +95,7 @@
 <script src="arquivo.js"></script>
 <script src="teclado.js"></script>
 <script src="cookies.js"></script>
+<script src="personas.js"></script>
 <script src="motor.js"></script>
 <script src="painel.js"></script>
 </body>

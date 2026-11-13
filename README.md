@@ -29,12 +29,21 @@ Telegram.
 **Atualizar:** baixe de novo, substitua a pasta e clique em ↻ no card da
 extensão em `chrome://extensions`.
 
-## Contas (uma por rede, por cookies)
+## Personas e contas
 
-No topo do painel, **Contas**: para cada rede, cole os cookies exportados pelo
+Uma **persona** é uma página com as suas redes (por exemplo, duas páginas, cada
+uma com o seu Instagram, X, TikTok…). No topo do painel, **Persona — quem
+publica**: crie, renomeie, exclua e escolha a persona.
+
+Em **Contas da persona**, para cada rede, cole os cookies exportados pelo
 **Cookie-Editor** (na página da rede, logada; exportar como JSON) e clique
 **Salvar e entrar**. A extensão apaga a sessão que estiver no navegador para
 aquela rede e grava a da conta — o navegador fica logado sem senha.
+
+**Ao preparar,** a extensão troca a sessão de cada rede para a conta da persona
+escolhida antes de abrir o compositor. Rede em que a persona **não tem conta é
+pulada** — preparar com a sessão que estivesse no navegador publicaria na página
+da outra persona. Os **colaboradores do Instagram** também são por persona.
 
 - **Entrar de novo** regrava a conta guardada (se a sessão cair do navegador).
 - **Esquecer** apaga a conta da extensão (a sessão no navegador continua).
@@ -83,5 +92,6 @@ editor não processava. Por isso a extensão só escreve pelo teclado real.
 No repositório do SocialPUB: `tests/test_extensao.py` roda o motor inteiro com
 cliques e teclas reais contra réplicas do compositor de cada rede (34
 verificações), `tests/test_extensao_link.py` testa o download por link (7) e
-`tests/test_extensao_cookies.py` as contas por cookies (18).
+`tests/test_extensao_cookies.py` as contas por cookies (18) e
+`tests/test_extensao_personas.py` as personas no painel de verdade (20).
 As réplicas **não** provam o DOM real das redes — isso só o uso diz.

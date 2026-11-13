@@ -1,6 +1,9 @@
-// Painel: escolhe as redes, a mídia e o texto, e prepara uma rede de cada vez.
+// Painel: persona → contas → redes, mídia e texto → prepara uma rede de cada vez.
 const $ = id => document.getElementById(id);
-const PADRAO_COLAB = '@endireitasul, @anothernewsbr';
+
+// Estado em memória, espelho do chrome.storage.local (ver personas.js).
+let PERSONAS = {};
+let ATIVA = null;
 
 function log(msg, cls) {
   const el = $('log');
@@ -10,6 +13,10 @@ function log(msg, cls) {
   linha.textContent = msg;
   el.appendChild(linha);
   linha.scrollIntoView({ block: 'nearest' });
+}
+
+function _esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
 /** «@a, @b» → ['a', 'b']; recusa o que não é @ válido do Instagram. */
@@ -24,17 +31,87 @@ function nomesDeColaboradores(texto) {
   return nomes;
 }
 
-// ── contas (uma por rede, por cookies) ───────────────────────────────────
-function _esc(s) {
-  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const persona = () => (ATIVA && PERSONAS[ATIVA]) || null;
+const salvar = () => spSalvarPersonas(PERSONAS, ATIVA);
+
+// ── persona ──────────────────────────────────────────────────────────────
+function desenharPersonas() {
+  const ids = Object.keys(PERSONAS).sort((a, b) => PERSONAS[a].nome.localeCompare(PERSONAS[b].nome));
+  $('pers').innerHTML = ids.length
+    ? ids.map(id => `<option value="${id}" ${id === ATIVA ? 'selected' : ''}>${_esc(PERSONAS[id].nome)}</option>`).join('')
+    : '<option value="">— crie a primeira persona —</option>';
+  $('pers-renomear').disabled = $('pers-excluir').disabled = !ids.length;
+  const p = persona();
+  if (p) {
+    const com = ORDEM_REDES.filter(id => p.contas[id]).map(id => RECEITAS[id].nome);
+    $('pers-resumo').textContent = com.length ? `contas: ${com.join(', ')}` : 'nenhuma conta ainda — cadastre em «Contas da persona»';
+  } else {
+    $('pers-resumo').textContent = 'Uma persona é uma página — por exemplo, um perfil com Instagram, X, TikTok… Crie uma para começar.';
+  }
+  $('colab').value = p ? (p.colab || '') : '';
+  $('colab').disabled = !p;
+  desenharContas();
+  desenharRedes();
 }
 
-async function _contas() { return (await chrome.storage.local.get({ contas: {} })).contas; }
+$('pers').addEventListener('change', async () => {
+  ATIVA = $('pers').value || null;
+  await salvar();
+  desenharPersonas();
+});
 
-async function desenharContas() {
-  const contas = await _contas();
+$('pers-nova').addEventListener('click', async () => {
+  const nome = prompt('Nome da nova persona:');
+  if (nome == null) return;
+  try {
+    ATIVA = spCriarPersona(PERSONAS, nome);
+    await salvar();
+    desenharPersonas();
+    $('contas-caixa').open = true;
+  } catch (e) { alert(e.message); }
+});
+
+$('pers-renomear').addEventListener('click', async () => {
+  const p = persona();
+  if (!p) return;
+  const nome = prompt('Novo nome da persona:', p.nome);
+  if (nome == null) return;
+  try {
+    p.nome = spValidarNome(PERSONAS, nome, ATIVA);
+    await salvar();
+    desenharPersonas();
+  } catch (e) { alert(e.message); }
+});
+
+$('pers-excluir').addEventListener('click', async () => {
+  const p = persona();
+  if (!p) return;
+  const n = Object.keys(p.contas).length;
+  if (!confirm(`Excluir a persona «${p.nome}» e as ${n} conta(s) guardadas dela na extensão?\n\nAs sessões que já estão no navegador continuam.`)) return;
+  delete PERSONAS[ATIVA];
+  ATIVA = Object.keys(PERSONAS)[0] || null;
+  await salvar();
+  desenharPersonas();
+});
+
+$('colab').addEventListener('change', async () => {
+  const p = persona();
+  if (!p) return;
+  p.colab = $('colab').value;
+  await salvar();
+});
+
+// ── contas da persona (uma por rede, por cookies) ────────────────────────
+function desenharContas() {
+  const p = persona();
+  if (!p) {
+    $('contas-resumo').textContent = '';
+    $('contas').innerHTML = '<div class="dica">Crie uma persona primeiro.</div>';
+    return;
+  }
+  const contas = p.contas;
   const n = ORDEM_REDES.filter(id => contas[id]).length;
-  $('contas-resumo').textContent = `— ${n} de ${ORDEM_REDES.length} guardada(s)`;
+  $('contas-resumo').textContent = `— ${p.nome}: ${n} de ${ORDEM_REDES.length}`;
   $('contas').innerHTML = ORDEM_REDES.map(id => {
     const c = contas[id];
     const estado = c
@@ -64,7 +141,8 @@ function _relatarEntrada(div, r, faltando) {
 
 $('contas').addEventListener('click', async ev => {
   const div = ev.target.closest('.conta');
-  if (!div || ev.target.tagName !== 'BUTTON') return;
+  const p = persona();
+  if (!div || !p || ev.target.tagName !== 'BUTTON') return;
   const rede = div.dataset.rede;
   const res = div.querySelector('.res');
   try {
@@ -73,56 +151,59 @@ $('contas').addEventListener('click', async ev => {
       return;
     }
     if (ev.target.classList.contains('apagar')) {
-      if (!confirm(`Esquecer a conta do ${RECEITAS[rede].nome} guardada na extensão? (A sessão que já está no navegador continua.)`)) return;
-      const contas = await _contas();
-      delete contas[rede];
-      await chrome.storage.local.set({ contas });
-      await desenharContas();
+      if (!confirm(`Esquecer a conta do ${RECEITAS[rede].nome} de «${p.nome}»? (A sessão que já está no navegador continua.)`)) return;
+      delete p.contas[rede];
+      await salvar();
+      desenharPersonas();
       return;
     }
     if (ev.target.classList.contains('entrar')) {
-      const c = (await _contas())[rede];
-      const r = await spEntrar(rede, c.cookies);
-      _relatarEntrada(div, r, null);
+      _relatarEntrada(div, await spEntrar(rede, p.contas[rede].cookies), null);
       return;
     }
     // Salvar e entrar
     const lido = spLerCookies(div.querySelector('.ck').value, rede);
     const r = await spEntrar(rede, lido.cookies);
-    const contas = await _contas();
-    contas[rede] = {
+    p.contas[rede] = {
       usuario: div.querySelector('.usuario').value.trim().replace(/^@/, ''),
       cookies: lido.cookies,
       salvo_em: new Date().toLocaleString('pt-BR'),
     };
-    await chrome.storage.local.set({ contas });
-    await desenharContas();
+    await salvar();
+    desenharPersonas();
     _relatarEntrada(document.querySelector(`.conta[data-rede="${rede}"]`), r, lido.faltando);
   } catch (e) {
     res.innerHTML = `<span class="er">✗ ${_esc(e && e.message ? e.message : e)}</span>`;
   }
 });
 
-desenharContas();
-
 // ── redes ────────────────────────────────────────────────────────────────
 for (const id of ORDEM_REDES) {
   const R = RECEITAS[id];
   const l = document.createElement('label');
   l.className = 'rede';
-  l.innerHTML = `<input type="checkbox" value="${id}"> ${R.nome} <small>(${R.aceita.join('/')})</small>`;
+  l.dataset.rede = id;
+  l.innerHTML = `<input type="checkbox" value="${id}"> ${R.nome} <small class="tag">(${R.aceita.join('/')})</small>`;
   $('redes').appendChild(l);
 }
 
-// ── o que fica salvo entre usos ──────────────────────────────────────────
-chrome.storage.local.get({ redes: ['x'], colab: PADRAO_COLAB }).then(s => {
+/** Rede sem conta na persona aparece apagada: na hora de preparar ela é pulada. */
+function desenharRedes() {
+  const p = persona();
+  document.querySelectorAll('#redes .rede').forEach(l => {
+    const tem = !!(p && p.contas[l.dataset.rede]);
+    l.classList.toggle('sem', !tem);
+    l.querySelector('.tag').textContent = tem
+      ? `(${RECEITAS[l.dataset.rede].aceita.join('/')})` : '(sem conta nesta persona)';
+  });
+}
+
+chrome.storage.local.get({ redes: ['x'] }).then(s => {
   document.querySelectorAll('#redes input').forEach(c => { c.checked = s.redes.includes(c.value); });
-  $('colab').value = s.colab;
 });
 $('redes').addEventListener('change', () => {
   chrome.storage.local.set({ redes: [...document.querySelectorAll('#redes input:checked')].map(c => c.value) });
 });
-$('colab').addEventListener('change', () => chrome.storage.local.set({ colab: $('colab').value }));
 
 $('leg').addEventListener('input', () => {
   const n = $('leg').value.length;
@@ -134,15 +215,17 @@ $('leg').addEventListener('input', () => {
 // ── a leva ───────────────────────────────────────────────────────────────
 $('ir').addEventListener('click', async () => {
   const btn = $('ir');
+  const p = persona();
   const redes = [...document.querySelectorAll('#redes input:checked')].map(c => c.value);
   const texto = $('leg').value;
   const url = $('url').value.trim();
   const local = $('arq').files[0] || null;
   $('log').textContent = '';
+  if (!p) { log('Crie e escolha uma persona primeiro.', 'am'); return; }
   if (!redes.length) { log('Marque pelo menos uma rede.', 'am'); return; }
   if (!texto && !url && !local) { log('Escreva uma legenda, cole um link ou escolha um arquivo.', 'am'); return; }
   let colaboradores;
-  try { colaboradores = nomesDeColaboradores($('colab').value); }
+  try { colaboradores = nomesDeColaboradores(p.colab); }
   catch (e) { log('✗ ' + e.message, 'er'); return; }
 
   // A permissão para baixar do site do link é pedida AQUI, antes de qualquer
@@ -157,6 +240,7 @@ $('ir').addEventListener('click', async () => {
   btn.disabled = true;
   const t0 = Date.now();
   try {
+    log(`persona: ${p.nome}`);
     let midia = null;
     if (url) {
       if (!(await permitido)) { log('✗ sem permissão para baixar desse site', 'er'); return; }
@@ -172,17 +256,36 @@ $('ir').addEventListener('click', async () => {
     }
 
     const resultados = [];
+    const tipo = midia ? (midia.tipo.startsWith('video/') ? 'video' : 'imagem') : 'texto';
     for (const id of redes) {
       log('');
+      const conta = p.contas[id];
+      // ⚠ Sem conta da persona nesta rede, PULA. Preparar com a sessão que por
+      // acaso estiver no navegador publicaria na página da OUTRA persona.
+      if (!conta) {
+        log(`[${RECEITAS[id].nome}] pulada: «${p.nome}» não tem conta nesta rede — cadastre em «Contas da persona»`, 'am');
+        resultados.push({ rede: id, semConta: true });
+        continue;
+      }
+      // Tipo de mídia que a receita não cobre: o motor pula — sem trocar a
+      // sessão à toa antes.
+      if (!RECEITAS[id].aceita.includes(tipo)) {
+        resultados.push(await prepararRede(id, midia, texto, { log }));
+        continue;
+      }
+      const e = await spEntrar(id, conta.cookies);
+      log(`[${RECEITAS[id].nome}] sessão de ${conta.usuario ? '@' + conta.usuario : p.nome} no navegador (${e.gravados} cookie(s))`
+          + (e.recusados.length ? ` · ${e.recusados.length} recusado(s)` : ''), e.recusados.length ? 'am' : 'ok');
       resultados.push(await prepararRede(id, midia, texto,
         { colaboradores: id === 'instagram' ? colaboradores : [], log }));
     }
 
     log('');
-    log('── resumo ──');
+    log(`── resumo · ${p.nome} ──`);
     for (const r of resultados) {
       const nome = RECEITAS[r.rede].nome;
-      if (r.pulada) log(`${nome}: pulada`, 'am');
+      if (r.semConta) log(`${nome}: sem conta nesta persona`, 'am');
+      else if (r.pulada) log(`${nome}: pulada (tipo de mídia)`, 'am');
       else if (r.erro) log(`${nome}: parou no meio — aba aberta`, 'er');
       else if (r.legendaOk === false) log(`${nome}: legenda NÃO conferiu — olhe a aba`, 'er');
       else log(`${nome}: pronta para você publicar`, 'ok');
@@ -193,4 +296,11 @@ $('ir').addEventListener('click', async () => {
   } finally {
     btn.disabled = false;
   }
+});
+
+// ── início ───────────────────────────────────────────────────────────────
+spCarregarPersonas().then(s => {
+  PERSONAS = s.personas;
+  ATIVA = s.ativa;
+  desenharPersonas();
 });
