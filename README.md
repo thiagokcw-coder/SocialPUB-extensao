@@ -82,6 +82,29 @@ rede sem legenda.
 Rede cuja legenda passe do limite **não é preparada**, e o relatório diz o
 tamanho e o limite. Nada é cortado sozinho.
 
+### Legendas escritas fora (Grok, ChatGPT…)
+
+Em **📝 Trazer legendas escritas fora**:
+
+1. **Copiar briefing** — o texto para colar no modelo, com o formato e o limite
+   de cada rede marcada. Escreva o assunto no fim.
+2. O modelo devolve uma seção por rede:
+
+   ```
+   === X ===
+   texto do X
+
+   === INSTAGRAM (Reels) ===
+   texto do Instagram
+   ```
+3. Escolha o arquivo **.txt** (ou cole o texto) e **Aplicar**: cada rede do
+   arquivo ganha a **legenda própria** e é **marcada**.
+
+Aceita os nomes como o modelo escreve («X (Twitter)», «Tik Tok», «IG»…).
+Rede desconhecida, seção vazia ou repetida, rede sem conta na persona, rede em
+que a extensão não publica e legenda acima do limite viram **aviso na tela** —
+nada some em silêncio. É o mesmo formato do app.
+
 ## Usar
 
 1. Clique no ícone da extensão → abre o painel numa aba.
@@ -122,5 +145,6 @@ cliques e teclas reais contra réplicas do compositor de cada rede, preparando e
 publicando (42 verificações), `tests/test_extensao_link.py` testa o download por link (7) e
 `tests/test_extensao_cookies.py` as contas por cookies (18) e
 `tests/test_extensao_personas.py` as personas, a legenda por rede e o «Publicar
-sozinho» no painel de verdade (32).
+sozinho» no painel de verdade (32), e `tests/test_extensao_legendas.py` o
+arquivo de legendas (27, com o arquivo real gerado pelo Grok).
 As réplicas **não** provam o DOM real das redes — isso só o uso diz.

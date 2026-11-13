@@ -264,6 +264,49 @@ $('legs').addEventListener('change', ev => {
   desenharLegendas();
   if (ev.target.checked) ta.focus();
 });
+// ── legendas escritas fora: um arquivo, uma seção por rede ───────────────
+/** Aplica o arquivo: cada rede dele ganha «Legenda própria» com o texto e é
+ * MARCADA. Os avisos ficam na TELA (não num aviso que some): são o motivo de o
+ * importador existir. */
+function aplicarLegendas(texto) {
+  const p = persona();
+  const r = spImportarLegendas(texto, p ? Object.keys(p.contas) : null);
+  const redes = Object.keys(r.legendas);
+  for (const id of redes) {
+    const l = _linhaLeg(id);
+    l.querySelector('.propria').checked = true;
+    l.querySelector('.leg-propria').value = r.legendas[id];
+    document.querySelector(`#redes input[value="${id}"]`).checked = true;
+  }
+  chrome.storage.local.set({ redes: marcadas() });
+  desenharLegendas();
+  $('leg-avisos').innerHTML =
+    (redes.length ? `<div class="dica ok">✓ aplicado em: ${redes.map(id => _esc(RECEITAS[id].nome)).join(', ')}</div>` : '')
+    + r.avisos.map(a => `<div class="dica am">⚠ ${_esc(a)}</div>`).join('');
+  return r;
+}
+
+$('leg-aplicar').addEventListener('click', () => aplicarLegendas($('leg-colar').value));
+$('leg-limpar').addEventListener('click', () => { $('leg-colar').value = ''; $('leg-avisos').innerHTML = ''; });
+$('leg-arquivo').addEventListener('change', ev => {
+  const f = ev.target.files[0];
+  if (!f) return;
+  const fr = new FileReader();
+  fr.onload = () => { $('leg-colar').value = String(fr.result || ''); aplicarLegendas($('leg-colar').value); };
+  fr.readAsText(f, 'utf-8');
+  ev.target.value = '';      // deixa escolher o MESMO arquivo de novo depois de editar
+});
+$('leg-briefing').addEventListener('click', async () => {
+  const redes = marcadas().length ? marcadas() : ORDEM_REDES;
+  try {
+    await navigator.clipboard.writeText(spBriefing(redes));
+    $('leg-avisos').innerHTML = `<div class="dica ok">✓ briefing copiado (${redes.map(id => _esc(RECEITAS[id].nome)).join(', ')}) — cole no modelo e escreva o assunto no fim</div>`;
+  } catch (e) {
+    $('leg-colar').value = spBriefing(redes);
+    $('leg-avisos').innerHTML = '<div class="dica am">não consegui copiar — o briefing está na caixa acima; copie de lá</div>';
+  }
+});
+
 $('legs').addEventListener('input', desenharLegendas);
 $('leg').addEventListener('input', desenharLegendas);
 $('redes').addEventListener('change', desenharLegendas);

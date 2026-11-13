@@ -33,6 +33,12 @@
   .persona-barra select { flex:1; min-width:200px; background:var(--bg); color:var(--tx); border:1px solid var(--bd); border-radius:8px; padding:8px; font:inherit; }
   .persona-barra button { padding:6px 10px; font-size:12px; }
   .rede.sem { opacity:.55; }
+  .importar { margin-top:10px; border:1px dashed var(--bd); border-radius:8px; padding:8px 10px; }
+  .importar summary { cursor:pointer; font-size:13px; }
+  .importar textarea { min-height:80px; margin-top:6px; font:12px ui-monospace, Consolas, monospace; }
+  .acoes-imp { display:flex; gap:8px; align-items:center; margin-top:6px; flex-wrap:wrap; }
+  .acoes-imp button { padding:6px 10px; font-size:12px; }
+  .acoes-imp input[type=file] { width:auto; flex:1; }
   .publicar-auto { display:flex; gap:10px; align-items:flex-start; cursor:pointer; }
   .leg-rede { border-top:1px solid var(--bd); padding:8px 0; }
   .leg-rede .topo { display:flex; justify-content:space-between; gap:8px; align-items:center; font-size:13px; }
@@ -81,6 +87,17 @@
     <label class="t" for="leg">Legenda comum</label>
     <textarea id="leg" placeholder="O texto da publicação. Acentos, quebras de linha, #hashtags e @menções."></textarea>
     <div class="dica" id="cont">0 caracteres</div>
+    <details class="importar">
+      <summary>📝 Trazer legendas escritas fora (Grok, ChatGPT…) — uma por rede</summary>
+      <div class="dica" style="margin:6px 0">1) <b>Copiar briefing</b> e cole no modelo com o assunto. 2) Ele devolve uma seção por rede (<code>=== X ===</code>, <code>=== INSTAGRAM ===</code>…). 3) Escolha o arquivo <b>.txt</b> ou cole o texto e clique <b>Aplicar</b>: cada rede ganha a sua legenda própria e é marcada.</div>
+      <div class="acoes-imp">
+        <button class="sec" id="leg-briefing">Copiar briefing</button>
+        <input type="file" id="leg-arquivo" accept=".txt,.md,text/plain">
+      </div>
+      <textarea id="leg-colar" placeholder="=== X ===&#10;texto do X&#10;&#10;=== INSTAGRAM ===&#10;texto do Instagram"></textarea>
+      <div class="acoes-imp"><button class="sec" id="leg-aplicar">Aplicar</button><button class="sec" id="leg-limpar">Limpar</button></div>
+      <div id="leg-avisos"></div>
+    </details>
     <div id="legs"></div>
     <div class="dica">Cada rede tem o seu limite. Marque <b>Legenda própria</b> para escrever um texto só daquela rede; sem marcar, ela usa a comum. Rede cuja legenda passe do limite <b>não é preparada</b> — nada é cortado sem você ver.</div>
   </div>
@@ -106,6 +123,7 @@
 <script src="arquivo.js"></script>
 <script src="teclado.js"></script>
 <script src="cookies.js"></script>
+<script src="legendas.js"></script>
 <script src="personas.js"></script>
 <script src="motor.js"></script>
 <script src="painel.js"></script>
