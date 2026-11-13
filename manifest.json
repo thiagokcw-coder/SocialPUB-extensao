@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "SocialPUB — teste no X",
+  "version": "0.2.0",
+  "description": "Teste: abre o compositor do X, anexa o arquivo, escreve a legenda, confere e PARA antes de postar.",
+  "permissions": [
+    "scripting",
+    "tabs",
+    "debugger"
+  ],
+  "host_permissions": [
+    "https://x.com/*",
+    "https://twitter.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "SocialPUB — abrir o painel de teste"
+  },
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ]
+}
