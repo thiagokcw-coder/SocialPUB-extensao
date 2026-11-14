@@ -197,6 +197,18 @@ senha.
 
 ## Testes
 
+**0.8.19 — Avançar no reel:** não consulta o autor em “Editar reel” / “Criar
+reel”; mantém a identidade vinculada ao compositor inicial e confere novamente
+na etapa final. Avançar considera texto ou aria-label, apenas botões visíveis
+no diálogo superior (z-index, depois ordem no DOM). Se não houver transição em
+5 segundos, registra texto, aria-label, retângulo e coordenadas do clique,
+mede novamente e tenta uma única vez no centro. Outra falha encerra o fluxo
+com a etapa e motivo exatos. Tempos por etapa permanecem no log.
+
+Testes locais cobrem ausência de leitura de autor nas telas intermediárias,
+botão oculto/diálogo anterior, aria-label sem texto, segunda tentativa bem
+sucedida e bloqueio depois de duas tentativas sem transição.
+
 **0.8.18 — reel direto após anexar:** se o vídeo já abre “Editar reel” ou
 “Criar reel”, avança antes de escrever e usa o campo “Descreva seu reel...” /
 “Describe your reel...”. Reconhece a etapa final também pela descrição e pelo

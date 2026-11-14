@@ -11,7 +11,7 @@ async def main():
         page = await browser.new_page()
         for script in ('pagina.js', 'receitas.js', 'personas.js', 'motor.js', 'teclado.js'):
             await page.add_script_tag(content=(ROOT / script).read_text(encoding='utf-8'))
-        for mode in ('video', 'texto', 'sem_midia', 'perde_midia', 'outro_autor', 'troca_dialogo', 'legenda_perdida', 'publicar', 'troca_antes_publicar', 'reel_direto', 'reel_publicar', 'reel_processando', 'reel_final'):
+        for mode in ('video', 'texto', 'sem_midia', 'perde_midia', 'outro_autor', 'troca_dialogo', 'legenda_perdida', 'publicar', 'troca_antes_publicar', 'reel_direto', 'reel_publicar', 'reel_processando', 'reel_final', 'reel_retry', 'reel_travado'):
             await page.set_content('<div role="dialog" id="fluxo"></div>')
             result = await page.evaluate("""async mode => {
               const caption = 'Legenda de teste', name = 'Página Exemplo';
@@ -30,8 +30,10 @@ async def main():
                   + media + `<button>${final ? 'Postar' : 'Avançar'}</button>`;
               };
               render();
-              const timeout = window.setTimeout;
-              window.setTimeout = cb => { queueMicrotask(cb); return 0; };
+              const timeout = window.setTimeout, now = Date.now;
+              let clock = 0;
+              Date.now = () => clock;
+              window.setTimeout = (cb, ms) => { clock += ms || 1; queueMicrotask(cb); return 0; };
               window.chrome = {debugger:{attach:async()=>{},detach:async()=>{},sendCommand:async()=>{},onDetach:{addListener(){},removeListener(){}}}};
               _motorAbrirAba = async()=>1;
               window.spLimparCampo = async()=> {};
@@ -42,7 +44,9 @@ async def main():
               };
               window.spClicarEm = async()=> {
                 if (target === RECEITAS.facebook.avancar) {
-                  advances++; stage++; render();
+                  advances++;
+                  if (mode === 'reel_travado' || (mode === 'reel_retry' && advances === 1)) return;
+                  stage++; render();
                   if (mode === 'troca_dialogo') root.replaceWith(root.cloneNode(true));
                 }
                 if (target === RECEITAS.facebook.publicar) {
@@ -53,6 +57,12 @@ async def main():
               };
               let finalReads = 0;
               _motorNaAba = async(id, method, args)=> {
+                if (method === 'facebookComo' && stage === 1 && video) throw new Error('checagem de autor indevida em Editar reel');
+                if (method === 'facebookEstado' && stage === 1 && video) {
+                  const read = SP.facebookComo;
+                  SP.facebookComo = () => {throw new Error('leitura indireta de autor em Editar reel');};
+                  try {return SP.facebookEstado(...args);} finally {SP.facebookComo = read;}
+                }
                 if (method === 'localizar') {
                   if (args[0] === RECEITAS.facebook.perfil.alternar) return {ok:false};
                   target = args[0]; return {ok:true,idx:0,x:0,y:0};
@@ -73,12 +83,12 @@ async def main():
                   publicar:['publicar','troca_antes_publicar','reel_publicar','reel_processando'].includes(mode), log:s=>logs.push(s)
                 });
                 return {result,clicks,advances,logs};
-              } finally {window.setTimeout = timeout;}
+              } finally {window.setTimeout = timeout; Date.now = now;}
             }""", mode)
-            if mode in ('video', 'texto', 'publicar', 'reel_direto', 'reel_publicar', 'reel_processando', 'reel_final'):
+            if mode in ('video', 'texto', 'publicar', 'reel_direto', 'reel_publicar', 'reel_processando', 'reel_final', 'reel_retry'):
                 assert 'erro' not in result['result'], (mode, result)
                 assert result['result']['legendaOk'], (mode, result)
-                assert result['advances'] == (0 if mode == 'reel_final' else 1 if mode == 'texto' or mode.startswith('reel_') else 2), (mode, result)
+                assert result['advances'] == (2 if mode == 'reel_retry' else 0 if mode == 'reel_final' else 1 if mode == 'texto' or mode.startswith('reel_') else 2), (mode, result)
             else:
                 assert result['result'].get('erro') or result['result'].get('legendaOk') is False, (mode, result)
             assert result['clicks'] == (1 if mode in ('publicar','reel_publicar','reel_processando') else 0), (mode, result)
@@ -86,6 +96,20 @@ async def main():
                 assert result['result']['publicou'], result
             if mode == 'reel_processando':
                 assert result['result']['processando'] and not result['result']['publicou'], result
+            if mode in ('reel_retry', 'reel_travado'):
+                assert result['advances'] == 2, result
+                assert any('sem transição em 5s' in s for s in result['logs']), result
+            if mode == 'reel_travado':
+                assert 'após duas tentativas' in result['result']['erro'], result
+        # Avançar do diálogo superior, inclusive aria-label sem texto e div.
+        for upper_z, lower_z, expected in ((20, 1, 'top'), (1, 20, 'back'), (1, 1, 'top')):
+            await page.set_content(f'''<div role="dialog" style="position:relative;z-index:{lower_z}"><div role="button" id="back">Avançar</div></div>
+              <div role="dialog" style="position:relative;z-index:{upper_z}"><div role="button" style="display:none">Avançar</div><div id="top" role="button" aria-label="Avançar" style="width:80px;height:30px"></div></div>
+              <div role="dialog" style="display:none"><button>Avançar</button></div>''')
+            located = await page.evaluate('SP.localizar(RECEITAS.facebook.avancar, 0)')
+            assert located['ok'] and 'aria' in located and 'retangulo' in located, located
+            center = await page.evaluate('''id => { const r = document.getElementById(id).getBoundingClientRect(); return {x:r.x+r.width/2,y:r.y+r.height/2}; }''', expected)
+            assert located['x'] == center['x'] and located['y'] == center['y'], (located, center)
         # Confirmações precisam nascer depois do clique. Um botão removido,
         # um aviso antigo ou outro diálogo aberto não comprovam publicação.
         await page.set_content('<div role="dialog"><h2>Criar post</h2><span>Página Exemplo</span><textarea></textarea><button>Postar</button></div><div role="status">Seu reel foi publicado</div>')
@@ -105,6 +129,6 @@ async def main():
             }''', heading)
             assert state['ok'] and state['etapa'] == 'final_reel', state
         await browser.close()
-    print('OK: 13 cenários do fluxo Facebook, reel direto, descrição, publicação e processamento')
+    print('OK: 15 cenários do fluxo Facebook; retry limitado, autor só nas etapas corretas e Avançar no diálogo do topo')
 
 asyncio.run(main())

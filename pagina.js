@@ -13,7 +13,7 @@
 // a armadilha do «Criar» (textContent "Novo postCriar", tela só "Criar") e a do
 // «Original» (rótulo num <span> dentro do botão — o innerText do botão é o mesmo).
 (() => {
-  const VERSAO = 10;
+  const VERSAO = 11;
   if (self.SP && self.SP.versao === VERSAO) return;
 
   const INVIS = /[​‌‍﻿⁠]/g;
@@ -28,9 +28,21 @@
     return r.width > 0 && r.height > 0;
   }
 
+  function dialogoTopo() {
+    const ds = Array.from(document.querySelectorAll('[role="dialog"]')).filter(visivel);
+    const raizes = ds.filter(d => !ds.some(p => p !== d && p.contains(d)));
+    const z = d => { let valor = 0; for (let p = d; p; p = p.parentElement) valor = Math.max(valor, parseInt(getComputedStyle(p).zIndex) || 0); return valor; };
+    return raizes.sort((a, b) => z(a) - z(b)).at(-1) || null;
+  }
+
   function casar(c) {
     if (typeof c === 'string') return Array.from(document.querySelectorAll(c));
     let els = Array.from(document.querySelectorAll(c.css || '*'));
+    if (c.dialogoTopo) {
+      const topo = dialogoTopo();
+      els = els.filter(e => topo && topo.contains(e) && visivel(e));
+    }
+    if (c.nome != null) els = els.filter(e => norm(e.innerText) === norm(c.nome) || norm(e.getAttribute('aria-label')) === norm(c.nome));
     if (c.texto != null) {
       const alvo = norm(c.texto);
       // textContent primeiro (barato) para não pedir innerText a mil elementos
@@ -84,7 +96,8 @@
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
       const r = a.el.getBoundingClientRect();
       return { ok: true, idx: a.idx, x: r.left + r.width / 2, y: r.top + r.height / 2,
-               texto: norm(a.el.innerText).slice(0, 40) };
+               texto: norm(a.el.innerText).slice(0, 80), aria: a.el.getAttribute('aria-label') || '',
+               retangulo: { x: r.x, y: r.y, largura: r.width, altura: r.height } };
     },
 
     existe(cands) { return !!achar(cands, true); },
@@ -200,11 +213,9 @@
 
     facebookEstado(nome) {
       const f = facebookFluxo;
-      const autor = this.facebookComo(nome);
-      if (!f || f.nome !== norm(nome).toLocaleLowerCase() || f.url !== location.href || !visivel(f.dialogo)
-          || (autor.nomes.length && !autor.ok)) {
+      if (!f || f.nome !== norm(nome).toLocaleLowerCase() || f.url !== location.href || !visivel(f.dialogo)) {
         facebookFluxo = null;
-        return { ok: false, nomes: autor.nomes };
+        return { ok: false, nomes: [], erro: 'o diálogo verificado do Facebook foi fechado ou substituído' };
       }
       const d = f.dialogo;
       const titulos = Array.from(d.querySelectorAll('h1,h2,h3,[role="heading"]')).filter(visivel).map(e => norm(e.innerText));
@@ -217,6 +228,10 @@
         : tem(['Editar reel', 'Edit reel']) ? 'editar_reel'
         : tem(['Criar reel', 'Create reel']) ? 'criar_reel'
         : tem(['Criar post', 'Create post', 'Criar publicação']) ? 'criar' : null;
+      // Estas duas telas não exibem autor. Mantemos a identidade vinculada
+      // ao diálogo inicial e voltamos a conferir na etapa final.
+      const autor = ['editar_reel', 'criar_reel'].includes(etapa) ? { nomes: [], ok: false } : this.facebookComo(nome);
+      if (autor.nomes.length && !autor.ok) return { ok: false, nomes: autor.nomes };
       const ed = descricao || Array.from(d.querySelectorAll('[contenteditable="true"], [role="textbox"], textarea')).find(visivel);
       const videos = Array.from(d.querySelectorAll('video')).filter(visivel);
       // Imagens de prévia, nunca o avatar do cabeçalho. Em Criar post exigimos

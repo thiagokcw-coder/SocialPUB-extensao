@@ -164,7 +164,7 @@ const RECEITAS = {
     legenda_max: 63206,
     medido_em: '2026-11-13 (Chrome local, pt-BR; vídeo até Postar, sem publicar)',
     fluxo_facebook: true,
-    avancar: ['Avançar', 'Next', 'Seguinte'].map(texto => ({ css: '[role="dialog"] [role="button"], [role="dialog"] button', texto })),
+    avancar: ['Avançar', 'Next', 'Seguinte'].map(nome => ({ css: '[role="dialog"] [role="button"], [role="dialog"] button', nome, dialogoTopo: true })),
     anexos: ['[role="dialog"] video', '[role="dialog"] [aria-label="Remover anexo do post"]', '[role="dialog"] [aria-label="Remove attachment"]', '[role="dialog"] [aria-label="Remove post attachment"]'],
     perfil: {
       // 13/11 (pt-BR): o botão real é aria-label «Conta, seu perfil». Prefixo e

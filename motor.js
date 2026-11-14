@@ -159,7 +159,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     const e = await naAba('facebookEstado', opcoes.facebookPagina);
     if (!e || !e.ok) {
       log('autores encontrados no compositor: ' + JSON.stringify(e?.nomes || []), 'er');
-      throw new EtapaFalhou(`Facebook não está como a página ${opcoes.facebookPagina}`);
+      throw new EtapaFalhou(e?.erro || `Facebook não está como a página ${opcoes.facebookPagina}`);
     }
     if (tipo === 'video') { e.midia = e.videos; e.anexos = e.videos > 0; }
     return e;
@@ -201,6 +201,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     await cmd('Input.dispatchMouseEvent', { type: 'mouseMoved', x: p.x, y: p.y });
     await new Promise(r => setTimeout(r, 400));
     const q = await naAba('localizar', cands, 1500);
+    if (cands === R.avancar && !q?.ok) throw new EtapaFalhou('Avançar saiu do diálogo visível antes do clique');
     const ponto = (q && q.ok) ? q : p;
     if (q && q.ok && (Math.abs(q.x - p.x) > 4 || Math.abs(q.y - p.y) > 4)) {
       log(`(${oQue}: mudou de lugar com o mouse em cima — cliquei na posição nova)`);
@@ -373,7 +374,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     }
 
     // Facebook: legenda no compositor inicial, depois uma transição por vez.
-    // Nunca repetir Avançar enquanto a tela anterior ainda estiver visível.
+    // Uma repetição no máximo, após 5s sem transição e nova medição do botão.
     if (facebookIniciado) {
       etapa('avançar telas do Facebook');
       let e = await estadoFacebook();
@@ -391,14 +392,26 @@ async function prepararRede(redeId, midia, texto, opcoes) {
           await new Promise(r => setTimeout(r, 500));
           e = await estadoFacebook();
         }
-        await conferirPaginaFacebook();
-        await clicar(R.avancar, 5000, 'Avançar do Facebook');
-        const limite = Date.now() + 30000;
-        do {
-          await new Promise(r => setTimeout(r, 300));
+        if (anterior === 'criar') await conferirPaginaFacebook();
+        let clicado = await clicar(R.avancar, 5000, 'Avançar do Facebook');
+        for (let tentativa = 0; tentativa < 2; tentativa++) {
+          const limite = Date.now() + 5000;
+          do {
+            await new Promise(r => setTimeout(r, 250));
+            e = await estadoFacebook();
+          } while (e.etapa === anterior && Date.now() < limite);
+          if (e.etapa !== anterior) break;
+          log(`Avançar sem transição em 5s (${anterior}): ` + JSON.stringify(clicado), 'am');
+          if (tentativa === 1) throw new EtapaFalhou(`o Facebook permaneceu em ${anterior} após duas tentativas de Avançar (5s cada)`);
+          // Recalcular o centro: nunca reutilizar coordenadas antigas.
+          if (!(await naAba('botao', R.avancar)).habilitado) throw new EtapaFalhou('Avançar ficou desabilitado antes da segunda tentativa');
+          clicado = await naAba('localizar', R.avancar, 1000);
+          if (!clicado?.ok) throw new EtapaFalhou('Avançar visível não encontrado na segunda tentativa');
           e = await estadoFacebook();
-          if (Date.now() >= limite) throw new EtapaFalhou('o Facebook não mudou de etapa após Avançar');
-        } while (e.etapa === anterior);
+          if (e.etapa !== anterior) break;
+          log('tentativa 2: clique no centro de Avançar ' + JSON.stringify(clicado));
+          await spClicarEm(cmd, clicado.x, clicado.y);
+        }
         if (anterior !== 'criar' && !['editar_reel', 'criar_reel', 'final_reel'].includes(e.etapa)) throw new EtapaFalhou('transição inesperada ao configurar o reel');
         log(`✓ Facebook: ${anterior} → ${e.etapa}`, 'ok');
       }
