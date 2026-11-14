@@ -13,7 +13,7 @@
 // a armadilha do «Criar» (textContent "Novo postCriar", tela só "Criar") e a do
 // «Original» (rótulo num <span> dentro do botão — o innerText do botão é o mesmo).
 (() => {
-  const VERSAO = 11;
+  const VERSAO = 12;
   if (self.SP && self.SP.versao === VERSAO) return;
 
   const INVIS = /[​‌‍﻿⁠]/g;
@@ -233,7 +233,18 @@
       const autor = ['editar_reel', 'criar_reel'].includes(etapa) ? { nomes: [], ok: false } : this.facebookComo(nome);
       if (autor.nomes.length && !autor.ok) return { ok: false, nomes: autor.nomes };
       const ed = descricao || Array.from(d.querySelectorAll('[contenteditable="true"], [role="textbox"], textarea')).find(visivel);
-      const videos = Array.from(d.querySelectorAll('video')).filter(visivel);
+      const videosNoDialogo = Array.from(d.querySelectorAll('video'));
+      const videos = videosNoDialogo.filter(visivel);
+      const diagnosticoMidia = {
+        etapa, videosNoDialogo: videosNoDialogo.length, videosVisiveis: videos.length,
+        videosForaDoDialogo: Array.from(document.querySelectorAll('video')).filter(v => !d.contains(v)).length,
+        videos: videosNoDialogo.slice(0, 5).map(v => {
+          const r = v.getBoundingClientRect(), css = getComputedStyle(v);
+          return { visivel: visivel(v), largura: r.width, altura: r.height,
+            readyState: v.readyState, videoWidth: v.videoWidth, videoHeight: v.videoHeight,
+            display: css.display, visibility: css.visibility, opacity: css.opacity, erro: v.error?.code || null };
+        }),
+      };
       // Imagens de prévia, nunca o avatar do cabeçalho. Em Criar post exigimos
       // também o controle de remoção; nas configurações não há cabeçalho autor.
       const remover = Array.from(d.querySelectorAll('[aria-label]')).some(e => visivel(e) && /^(Remover anexo do post|Remove attachment|Remove post attachment)$/i.test(e.getAttribute('aria-label')));
@@ -241,7 +252,7 @@
         && (etapa === 'final_post' || (remover && ed && (ed.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING))));
       return { ok: !!etapa && (etapa !== 'criar' || autor.ok), etapa, nomes: autor.nomes,
         texto: ed ? (ed.value ?? ed.innerText) : (etapa === 'final_post' ? d.innerText : ''),
-        videos: videos.length, anexos: videos.length + imagens.length > 0, midia: videos.length + imagens.length };
+        diagnosticoMidia, videos: videos.length, anexos: videos.length + imagens.length > 0, midia: videos.length + imagens.length };
     },
 
     facebookArmarConfirmacao() {

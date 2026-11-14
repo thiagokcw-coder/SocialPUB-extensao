@@ -11,7 +11,7 @@ async def main():
         page = await browser.new_page()
         for script in ('pagina.js', 'receitas.js', 'personas.js', 'motor.js', 'teclado.js'):
             await page.add_script_tag(content=(ROOT / script).read_text(encoding='utf-8'))
-        for mode in ('video', 'texto', 'sem_midia', 'perde_midia', 'outro_autor', 'troca_dialogo', 'legenda_perdida', 'publicar', 'troca_antes_publicar', 'reel_direto', 'reel_publicar', 'reel_processando', 'reel_final', 'reel_retry', 'reel_travado'):
+        for mode in ('video', 'texto', 'sem_midia', 'perde_midia', 'outro_autor', 'troca_dialogo', 'legenda_perdida', 'publicar', 'troca_antes_publicar', 'reel_direto', 'reel_publicar', 'reel_processando', 'reel_final', 'reel_retry', 'reel_travado', 'previa_intermediaria', 'previa_atrasada', 'previa_fora'):
             await page.set_content('<div role="dialog" id="fluxo"></div>')
             result = await page.evaluate("""async mode => {
               const caption = 'Legenda de teste', name = 'Página Exemplo';
@@ -23,7 +23,8 @@ async def main():
                 const heading = stage === 0 ? 'Criar post' : stage === 1 && video ? 'Editar reel' : video ? 'Configurações do reel' : 'Configurações do post';
                 const final = stage === (video ? 2 : 1);
                 const author = mode === 'outro_autor' && final ? 'Perfil Pessoal' : name;
-                const media = video && mode !== 'sem_midia' && !(mode === 'perde_midia' && final) ? '<video style="width:200px;height:200px"></video>' : '';
+                const ausente = mode.startsWith('previa_') && (stage === 1 || (mode === 'previa_fora' && final));
+                const media = video && mode !== 'sem_midia' && !(mode === 'perde_midia' && final) && !ausente ? '<video style="width:200px;height:200px"></video>' : '';
                 const text = (mode === 'legenda_perdida' || direto) && final ? '' : caption;
                 root.innerHTML = `<h2>${heading}</h2>` + (stage === 0 || mode === 'outro_autor' ? `<span>${author}</span>` : '')
                   + (direto && final ? `<textarea placeholder="Descreva seu reel...">${text}</textarea>` : stage === 0 || (final && video) ? `<div role="textbox" contenteditable="true" style="height:50px">${stage === 0 ? '' : text}</div>` : final ? `<section>${text}</section>` : '<input role="textbox" aria-label="Adicionar tags">')
@@ -55,8 +56,10 @@ async def main():
                   else root.remove();
                 }
               };
-              let finalReads = 0;
+              let finalReads = 0, previewReads = 0;
               _motorNaAba = async(id, method, args)=> {
+                if (method === 'facebookEstado' && stage === 1 && mode === 'previa_atrasada' && ++previewReads === 5) root.insertAdjacentHTML('beforeend','<video style="width:200px;height:200px"></video>');
+                if (method === 'facebookEstado' && stage > 0 && mode === 'previa_fora' && !document.getElementById('feedvideo')) root.insertAdjacentHTML('afterend','<video id="feedvideo" style="width:200px;height:200px"></video>');
                 if (method === 'facebookComo' && stage === 1 && video) throw new Error('checagem de autor indevida em Editar reel');
                 if (method === 'facebookEstado' && stage === 1 && video) {
                   const read = SP.facebookComo;
@@ -80,12 +83,12 @@ async def main():
               try {
                 const result = await prepararRede('facebook', video ? {tipo:'video/mp4',nome:'teste.mp4',b64:''} : null, caption, {
                   facebookPagina:name, facebookPaginaUrl:'https://www.facebook.com/pagina.exemplo',
-                  publicar:['publicar','troca_antes_publicar','reel_publicar','reel_processando'].includes(mode), log:s=>logs.push(s)
+                  publicar:['publicar','troca_antes_publicar','reel_publicar','reel_processando','previa_fora'].includes(mode), log:s=>logs.push(s)
                 });
                 return {result,clicks,advances,logs};
               } finally {window.setTimeout = timeout; Date.now = now;}
             }""", mode)
-            if mode in ('video', 'texto', 'publicar', 'reel_direto', 'reel_publicar', 'reel_processando', 'reel_final', 'reel_retry'):
+            if mode in ('video', 'texto', 'publicar', 'reel_direto', 'reel_publicar', 'reel_processando', 'reel_final', 'reel_retry', 'previa_intermediaria', 'previa_atrasada'):
                 assert 'erro' not in result['result'], (mode, result)
                 assert result['result']['legendaOk'], (mode, result)
                 assert result['advances'] == (2 if mode == 'reel_retry' else 0 if mode == 'reel_final' else 1 if mode == 'texto' or mode.startswith('reel_') else 2), (mode, result)
@@ -101,6 +104,14 @@ async def main():
                 assert any('sem transição em 5s' in s for s in result['logs']), result
             if mode == 'reel_travado':
                 assert 'após duas tentativas' in result['result']['erro'], result
+            if mode == 'previa_intermediaria':
+                assert any('avançando apenas à revisão' in s for s in result['logs']), result
+            if mode == 'previa_atrasada':
+                assert any('aguardando prévia' in s for s in result['logs']), result
+                assert not any('avançando apenas à revisão' in s for s in result['logs']), result
+            if mode == 'previa_fora':
+                assert result['result']['erro'] == 'a mídia não apareceu no post', result
+                assert any('videosForaDoDialogo' in s for s in result['logs']), result
         # Avançar do diálogo superior, inclusive aria-label sem texto e div.
         for upper_z, lower_z, expected in ((20, 1, 'top'), (1, 20, 'back'), (1, 1, 'top')):
             await page.set_content(f'''<div role="dialog" style="position:relative;z-index:{lower_z}"><div role="button" id="back">Avançar</div></div>
@@ -129,6 +140,6 @@ async def main():
             }''', heading)
             assert state['ok'] and state['etapa'] == 'final_reel', state
         await browser.close()
-    print('OK: 15 cenários do fluxo Facebook; retry limitado, autor só nas etapas corretas e Avançar no diálogo do topo')
+    print('OK: 18 cenários Facebook; prévia atrasada/intermediária, mídia externa bloqueada e guardas de publicação')
 
 asyncio.run(main())

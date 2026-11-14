@@ -154,6 +154,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     }
   };
   let facebookIniciado = false;
+  let facebookMidiaConfirmada = false;
 
   async function estadoFacebook() {
     const e = await naAba('facebookEstado', opcoes.facebookPagina);
@@ -162,13 +163,35 @@ async function prepararRede(redeId, midia, texto, opcoes) {
       throw new EtapaFalhou(e?.erro || `Facebook não está como a página ${opcoes.facebookPagina}`);
     }
     if (tipo === 'video') { e.midia = e.videos; e.anexos = e.videos > 0; }
+    if (e.midia > 0) facebookMidiaConfirmada = true;
+    return e;
+  }
+
+  async function aguardarMidiaFacebook(e, intermediaria = false) {
+    if (!midia || e.midia > 0) return e;
+    const inicio = Date.now();
+    const prazo = intermediaria ? 5000 : 15000;
+    log(`aguardando prévia em ${e.etapa} (até ${prazo / 1000}s)`);
+    while (!e.midia && Date.now() - inicio < prazo) {
+      await new Promise(r => setTimeout(r, 500));
+      e = await estadoFacebook();
+    }
+    log(`tempo · prévia em ${e.etapa}: ${((Date.now() - inicio) / 1000).toFixed(2)}s`);
+    if (!e.midia) {
+      log('diagnóstico da prévia: ' + JSON.stringify(e.diagnosticoMidia || {}), 'am');
+      // Avançar não publica. A tela de edição pode renderizar a prévia fora
+      // do escopo já verificado; isso não autoriza reutilizar a prova no envio.
+      if (intermediaria && ['editar_reel', 'criar_reel'].includes(e.etapa) && facebookMidiaConfirmada) {
+        log('prévia já confirmada antes; avançando apenas à revisão — mídia será exigida novamente antes de publicar', 'am');
+      } else throw new EtapaFalhou('a mídia não apareceu no post');
+    }
     return e;
   }
 
   async function lerPost() {
     const lido = await naAba('ler', R.legenda, R.anexos || [], R.publicar);
     if (facebookIniciado) {
-      const estado = await estadoFacebook();
+      const estado = await aguardarMidiaFacebook(await estadoFacebook());
       if (!estado.etapa.startsWith('final_')) throw new EtapaFalhou('o Facebook saiu da tela de configurações antes de publicar');
       Object.assign(lido, estado);
     }
@@ -380,7 +403,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
       let e = await estadoFacebook();
       for (let n = 0; !e.etapa.startsWith('final_'); n++) {
         if (n >= 3 || !['criar', 'editar_reel', 'criar_reel'].includes(e.etapa)) throw new EtapaFalhou('etapa do Facebook não reconhecida');
-        if (midia && !e.midia) throw new EtapaFalhou('a mídia não apareceu no post');
+        e = await aguardarMidiaFacebook(e, ['editar_reel', 'criar_reel'].includes(e.etapa));
         if (e.etapa === 'criar' && texto && !spNormalizar(e.texto).includes(spNormalizar(texto))) {
           throw new EtapaFalhou('a legenda NÃO bate com o que foi escrito');
         }

@@ -197,6 +197,20 @@ senha.
 
 ## Testes
 
+**0.8.20 — prévia na transição do reel:** a medição real mostrou que o primeiro
+Avançar funcionava e o motor parava por ausência de mídia em “Editar reel”,
+apesar da prévia reproduzir. Agora espera até 5s pela prévia intermediária;
+se a mídia já foi confirmada antes no mesmo fluxo, permite apenas avançar à
+revisão. Na etapa final exige uma nova detecção da mídia dentro do diálogo,
+esperando até 15s; sem ela não publica, mesmo com publicação automática ligada.
+Vídeos no feed ou em outro diálogo não servem de prova. O diagnóstico registra
+contagens, dimensões, estado de carregamento e visibilidade, sem URLs de mídia.
+
+Testes locais cobrem prévia tardia, ausência só na etapa intermediária e vídeo
+fora do diálogo com publicação automática ligada. A causa DOM exata do falso
+negativo observado ainda não foi confirmada; esta versão acrescenta a medição
+necessária e não considera o upload/publicação real validados.
+
 **0.8.19 — Avançar no reel:** não consulta o autor em “Editar reel” / “Criar
 reel”; mantém a identidade vinculada ao compositor inicial e confere novamente
 na etapa final. Avançar considera texto ou aria-label, apenas botões visíveis
