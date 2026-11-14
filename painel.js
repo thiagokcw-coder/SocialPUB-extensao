@@ -497,6 +497,7 @@ $('ir').addEventListener('click', async () => {
       }
       else if (r.legendaOk === false) log(`${nome}: legenda NÃO conferiu — ${publicar ? 'não publiquei; ' : ''}olhe a aba`, 'er');
       else if (r.publicou) log(`${nome}: PUBLICADO`, 'ok');
+      else if (r.processando) log(`${nome}: enviado; o Facebook está processando o reel`, 'ok');
       else if (r.clicou) log(`${nome}: cliquei em publicar e não deu para confirmar — CONFIRA na aba antes de publicar de novo`, 'am');
       else log(`${nome}: pronta para você publicar`, 'ok');
     }

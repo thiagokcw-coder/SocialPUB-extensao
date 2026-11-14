@@ -13,7 +13,7 @@
 // a armadilha do «Criar» (textContent "Novo postCriar", tela só "Criar") e a do
 // «Original» (rótulo num <span> dentro do botão — o innerText do botão é o mesmo).
 (() => {
-  const VERSAO = 9;
+  const VERSAO = 10;
   if (self.SP && self.SP.versao === VERSAO) return;
 
   const INVIS = /[​‌‍﻿⁠]/g;
@@ -209,11 +209,15 @@
       const d = f.dialogo;
       const titulos = Array.from(d.querySelectorAll('h1,h2,h3,[role="heading"]')).filter(visivel).map(e => norm(e.innerText));
       const tem = lista => titulos.some(t => lista.includes(t));
-      const etapa = tem(['Configurações do reel', 'Reel settings', 'Definições do reel']) ? 'final_reel'
+      const descricao = Array.from(d.querySelectorAll('textarea, [role="textbox"], [contenteditable="true"]')).filter(visivel)
+        .find(e => /^(?:Descreva (?:seu|o teu) reel|Describe your reel|Escreva uma descrição|Write a description)/i.test(e.getAttribute('aria-label') || e.getAttribute('placeholder') || e.getAttribute('data-placeholder') || ''));
+      const finalReel = descricao && Array.from(d.querySelectorAll('button,[role="button"]')).some(e => visivel(e) && /^(?:Publicar|Compartilhar agora|Share now|Post|Postar|Publish)$/i.test(norm(e.innerText) || e.getAttribute('aria-label')));
+      const etapa = tem(['Configurações do reel', 'Reel settings', 'Definições do reel']) || finalReel ? 'final_reel'
         : tem(['Configurações do post', 'Post settings', 'Definições da publicação']) ? 'final_post'
         : tem(['Editar reel', 'Edit reel']) ? 'editar_reel'
+        : tem(['Criar reel', 'Create reel']) ? 'criar_reel'
         : tem(['Criar post', 'Create post', 'Criar publicação']) ? 'criar' : null;
-      const ed = Array.from(d.querySelectorAll('[contenteditable="true"], [role="textbox"], textarea')).find(visivel);
+      const ed = descricao || Array.from(d.querySelectorAll('[contenteditable="true"], [role="textbox"], textarea')).find(visivel);
       const videos = Array.from(d.querySelectorAll('video')).filter(visivel);
       // Imagens de prévia, nunca o avatar do cabeçalho. Em Criar post exigimos
       // também o controle de remoção; nas configurações não há cabeçalho autor.
@@ -223,6 +227,27 @@
       return { ok: !!etapa && (etapa !== 'criar' || autor.ok), etapa, nomes: autor.nomes,
         texto: ed ? (ed.value ?? ed.innerText) : (etapa === 'final_post' ? d.innerText : ''),
         videos: videos.length, anexos: videos.length + imagens.length > 0, midia: videos.length + imagens.length };
+    },
+
+    facebookArmarConfirmacao() {
+      if (!facebookFluxo) return false;
+      facebookFluxo.avisosAntes = new Set(Array.from(document.querySelectorAll('[role="alert"], [role="status"]')).map(e => norm(e.innerText)));
+      return true;
+    },
+
+    facebookResultado() {
+      const f = facebookFluxo;
+      if (!f || !f.avisosAntes || location.href !== f.url) return null;
+      for (const e of document.querySelectorAll('[role="alert"], [role="status"]')) {
+        const texto = norm(e.innerText);
+        if (!visivel(e) || e.closest('[contenteditable="true"], [role="article"], article') || f.avisosAntes.has(texto)) continue;
+        if (/(?:seu reel foi publicado|your reel (?:has been|was) published)/i.test(texto)) return { publicado: true, evidencia: texto };
+        if (/(?:reel.*está sendo processado|your reel.*(?:being processed|processing))/i.test(texto)) return { processando: true, evidencia: texto };
+      }
+      if (!visivel(f.dialogo) && !Array.from(document.querySelectorAll('[role="dialog"]')).some(visivel)) {
+        return { publicado: true, evidencia: 'o diálogo verificado fechou após publicar' };
+      }
+      return null;
     },
 
     facebookBanner() {

@@ -202,7 +202,9 @@ const RECEITAS = {
     espera_arquivo_s: 120,
     // Editor inicial e descrição do reel; o rótulo pode não conter o autor.
     legenda: ['[role="dialog"] [role="textbox"][contenteditable="true"]', '[role="dialog"] [role="textbox"]', '[role="dialog"] textarea'],
-    publicar: ['Publicar', 'Post', 'Postar', 'Publish'].flatMap(t => [
+    descricao_reel: ['Descreva seu reel', 'Descreva o teu reel', 'Describe your reel', 'Escreva uma descrição', 'Write a description'].flatMap(t => [
+      `[role="dialog"] [aria-label^="${t}"]`, `[role="dialog"] textarea[placeholder^="${t}"]`, `[role="dialog"] [contenteditable="true"][data-placeholder^="${t}"]`]),
+    publicar: ['Publicar', 'Post', 'Postar', 'Publish', 'Compartilhar agora', 'Share now'].flatMap(t => [
       `[role="dialog"] [role="button"][aria-label="${t}"]`,
       { css: '[role="dialog"] [role="button"], [role="dialog"] button', texto: t }]),
   },

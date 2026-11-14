@@ -197,6 +197,21 @@ senha.
 
 ## Testes
 
+**0.8.18 — reel direto após anexar:** se o vídeo já abre “Editar reel” ou
+“Criar reel”, avança antes de escrever e usa o campo “Descreva seu reel...” /
+“Describe your reel...”. Reconhece a etapa final também pela descrição e pelo
+botão de publicação; inclui “Compartilhar agora” / “Share now”. O post normal
+conserva seu caminho. Identidade e mídia continuam sendo conferidas no mesmo
+diálogo, com tempos por etapa e descrição conferida antes do clique final.
+Não interage com o popup do Tradutor; os alvos são campos/botões do diálogo.
+
+Após o clique, espera o diálogo verificado fechar sem outro diálogo aberto,
+ou um novo aviso explícito de publicação/processamento. Processamento é
+registrado como envio aceito, não como publicação concluída. Sem evidência,
+o resultado continua incerto, sem repetir o clique. Testes locais cobrem o
+reel direto, descrição, fechamento, avisos novos/antigos e post normal; falta
+validar esta versão ponta a ponta na conta real.
+
 **0.8.17 — autor sem audiência/IA:** a identificação ignora rótulos de UI,
 controles de privacidade e comboboxes; dentro de botões, apenas a imagem do
 avatar pode identificar o autor. Nome de outro perfil continua bloqueando.

@@ -359,7 +359,8 @@ async function prepararRede(redeId, midia, texto, opcoes) {
 
     // ── 5. legenda ───────────────────────────────────────────────────────
     etapa('escrever legenda');
-    if (texto) {
+    const reelDireto = facebookIniciado && (await estadoFacebook()).etapa !== 'criar';
+    if (texto && !reelDireto) {
       // Clique REAL no editor antes de escrever: foco por script não basta
       // em todo editor, e o aviso que cobre a tela pegaria as teclas.
       // Teclado real sempre: o comando de texto do navegador deixou a #hashtag
@@ -377,7 +378,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
       etapa('avançar telas do Facebook');
       let e = await estadoFacebook();
       for (let n = 0; !e.etapa.startsWith('final_'); n++) {
-        if (n >= 2 || !['criar', 'editar_reel'].includes(e.etapa)) throw new EtapaFalhou('etapa do Facebook não reconhecida');
+        if (n >= 3 || !['criar', 'editar_reel', 'criar_reel'].includes(e.etapa)) throw new EtapaFalhou('etapa do Facebook não reconhecida');
         if (midia && !e.midia) throw new EtapaFalhou('a mídia não apareceu no post');
         if (e.etapa === 'criar' && texto && !spNormalizar(e.texto).includes(spNormalizar(texto))) {
           throw new EtapaFalhou('a legenda NÃO bate com o que foi escrito');
@@ -398,8 +399,19 @@ async function prepararRede(redeId, midia, texto, opcoes) {
           e = await estadoFacebook();
           if (Date.now() >= limite) throw new EtapaFalhou('o Facebook não mudou de etapa após Avançar');
         } while (e.etapa === anterior);
-        if (anterior === 'editar_reel' && e.etapa !== 'final_reel') throw new EtapaFalhou('transição inesperada ao configurar o reel');
+        if (anterior !== 'criar' && !['editar_reel', 'criar_reel', 'final_reel'].includes(e.etapa)) throw new EtapaFalhou('transição inesperada ao configurar o reel');
         log(`✓ Facebook: ${anterior} → ${e.etapa}`, 'ok');
+      }
+      if (reelDireto && texto) {
+        etapa('preencher descrição do reel');
+        await conferirPaginaFacebook();
+        await clicar(R.descricao_reel, 10000, 'descrição do reel');
+        await naAba('focar', R.descricao_reel, 2000);
+        await spLimparCampo(cmd);
+        await spEscreverTeclas(cmd, texto, false);
+        const descricao = await estadoFacebook();
+        if (!spNormalizar(descricao.texto).includes(spNormalizar(texto))) throw new EtapaFalhou('a legenda NÃO bate com a descrição do reel');
+        log('✓ descrição do reel escrita e conferida', 'ok');
       }
     }
 
@@ -472,6 +484,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     if (facebookIniciado && texto && !spNormalizar((await lerPost()).texto).includes(spNormalizar(texto))) {
       throw new EtapaFalhou('a legenda mudou antes de publicar');
     }
+    if (facebookIniciado && !(await naAba('facebookArmarConfirmacao'))) throw new EtapaFalhou('não consegui preparar a confirmação do Facebook');
     const clicado = await clicar(R.publicar, 5000, 'botão de publicar');
     res.clicou = true;
     log('cliquei em publicar …');
@@ -499,14 +512,25 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     // compositor da linha do tempo atrás dele, com um botão de publicar que
     // também casa a receita — e a leva dizia "continua na tela" de um post que
     // tinha saído (13/11). É o `sel` que o app sempre usou.
-    res.publicou = await naAba('sumiu', [R.publicar[clicado.idx]], 30000);
     if (R.fluxo_facebook) {
-      res.botaoSumiu = res.publicou;
+      const limite = Date.now() + 30000;
+      do {
+        const resultado = await naAba('facebookResultado');
+        if (resultado) {
+          res.publicou = !!resultado.publicado;
+          res.processando = !!resultado.processando;
+          res.evidencia = resultado.evidencia;
+          log(res.processando ? '✓ reel enviado: o Facebook informou que está processando' : '✓ publicação confirmada: ' + res.evidencia, 'ok');
+          return res;
+        }
+        await new Promise(r => setTimeout(r, 500));
+      } while (Date.now() < limite);
       res.publicou = false;
       res.publicacaoIncerta = true;
       log('? clique enviado ao Facebook; publicação ainda não confirmada no feed — confira a aba antes de repetir', 'am');
       return res;
     }
+    res.publicou = await naAba('sumiu', [R.publicar[clicado.idx]], 30000);
     log(res.publicou ? '✓ PUBLICADO: o botão de publicar saiu da tela'
                      : '? cliquei em publicar e o botão CONTINUA na tela depois de 30s — CONFIRA na aba antes de publicar de novo',
         res.publicou ? 'ok' : 'am');
