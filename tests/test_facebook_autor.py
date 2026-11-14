@@ -35,6 +35,17 @@ async def main():
         cases.append((f'avatar conflitante {attr}', composer(image + f'<strong>{OTHER}</strong>'), False))
     for prefix in ('Posting as', 'Publicar como', 'Publicando como', 'A publicar como'):
         cases.append((prefix, composer(f'<span>{prefix}: {PAGE}</span>'), True))
+    for label in ('Público', 'Public', 'Amigos', 'Friends', 'Somente eu', 'Only me',
+                  'Personalizado', 'Custom', 'Rótulo de IA desativado', 'Rótulo de IA ativado',
+                  'AI label off', 'AI label on'):
+        ui = f'<span>{label}</span>'
+        cases.append((f'rótulo UI {label}', composer(f'<span>{PAGE}</span>{ui}'), True))
+        cases.append((f'rótulo UI conflitante {label}', composer(f'<span>{PAGE}</span><strong>{OTHER}</strong>{ui}'), False))
+        cases.append((f'botão com ícone {label}', composer(f'<span>{PAGE}</span><button><img alt="{label}" width="20" height="20">{ui}</button>'), True))
+    for role in ('button', 'combobox'):
+        for label in ('Editar privacidade', 'Edit privacy', 'Selecionar público', 'Rótulo de IA desativado'):
+            control = f'<div role="{role}" aria-label="{label}"><img alt="Ícone do controle" width="20" height="20"><span>Texto do controle</span></div>'
+            cases.append((f'controle {role} {label}', composer(f'<span>{PAGE}</span>{control}'), True))
     cases.extend([
         ('autor e pergunta concordam', composer(f'<span>{PAGE}</span>',
           f'<div role="textbox" contenteditable="true" aria-label="No que você está pensando, {PAGE}?" style="min-height:40px"></div>'), True),
@@ -49,7 +60,7 @@ async def main():
         ('outro autor oculto', composer(f'<span>{PAGE}</span><span style="display:none">{OTHER}</span>'), True),
         ('título e audiência não são autores', composer(f'<h2><span>Criar publicação</span></h2><span>{PAGE}</span><button><span>Público</span></button>'), True),
         ('avatar clicável', composer(f'<button><img alt="{PAGE}" width="40" height="40"></button>'), True),
-        ('autor clicável conflitante', composer(f'<div role="button"><img width="40" height="40"><span>{OTHER}</span></div>',
+        ('autor clicável conflitante', composer(f'<div role="button"><img alt="{OTHER}" width="40" height="40"><span>{OTHER}</span></div>',
           f'<textarea placeholder="No que você está pensando, {PAGE}?"></textarea>'), False),
         ('dois compositores conflitantes', composer(f'<span>{PAGE}</span>') + composer(f'<span>{OTHER}</span>'), False),
         ('sem nome', composer(), False),
@@ -58,9 +69,19 @@ async def main():
         browser = await p.chromium.launch(channel='chrome', headless=True)
         page = await browser.new_page()
         await page.add_script_tag(content=(ROOT / 'pagina.js').read_text(encoding='utf-8'))
+        # Regressão exata relatada: nome + audiência + rótulo de IA.
+        await page.set_content(composer('<span>Uncensored Brasil</span><span>Público</span><span>Rótulo de IA desativado</span>'))
+        exact = await page.evaluate('SP.facebookComo("Uncensored Brasil")')
+        assert exact == {'ok': True, 'nomes': ['Uncensored Brasil']}, exact
         for label, html, expected in cases:
             await page.set_content(html)
-            result = await page.evaluate('(name) => SP.facebookComo(name)', PAGE)
+            measured = await page.evaluate('''name => {
+              const start = performance.now();
+              const result = SP.facebookComo(name);
+              return {result, elapsed: performance.now() - start, synchronous: !(result instanceof Promise)};
+            }''', PAGE)
+            result = measured['result']
+            assert measured['synchronous'] and measured['elapsed'] < 2000, (label, measured)
             assert result['ok'] is expected, (label, result)
             if 'conflitante' in label:
                 assert OTHER in result['nomes'], (label, result)
@@ -111,6 +132,8 @@ async def main():
             assert result['publishClicks'] == 0 and result['reads'] == stage, result
             assert result['opened'] == ['https://www.facebook.com/pagina.exemplo'], result
             assert any('autores encontrados' in s and OTHER in s for s in result['logs']), result
+            assert any('tempo · checagem do autor:' in s for s in result['logs']), result
+            assert any('tempo · total do motor:' in s for s in result['logs']), result
         await browser.close()
     print(f'OK: {len(cases)} cenários de identificação + 3 bloqueios e logs no motor')
 

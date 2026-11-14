@@ -197,6 +197,14 @@ senha.
 
 ## Testes
 
+**0.8.17 — autor sem audiência/IA:** a identificação ignora rótulos de UI,
+controles de privacidade e comboboxes; dentro de botões, apenas a imagem do
+avatar pode identificar o autor. Nome de outro perfil continua bloqueando.
+A leitura do autor é imediata, sem espera por prazo. O log registra o tempo
+de cada etapa do Facebook, de cada checagem do autor e o total do motor,
+inclusive quando ocorre falha. Os testes incluem o caso nome + “Público” +
+“Rótulo de IA desativado”, controles com ícones e autores conflitantes.
+
 **0.8.16 — trocar para a Página antes de criar:** reconhece “Trocar agora” e
 os botões de troca no topo/cartão da página. Após clicar uma vez, espera até
 30 segundos pelo desaparecimento do banner e pela disponibilidade do

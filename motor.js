@@ -100,6 +100,15 @@ async function spVigiarUpload({ ler, botao, log, maxMs = 180000, zeroMs = 30000,
 async function prepararRede(redeId, midia, texto, opcoes) {
   const R = RECEITAS[redeId];
   const log = (m, c) => (opcoes.log || (() => {}))(`[${R.nome}] ${m}`, c);
+  const inicioRede = Date.now();
+  let etapaAtual = '', inicioEtapa = inicioRede;
+  const etapa = nome => {
+    if (redeId !== 'facebook') return;
+    const agora = Date.now();
+    if (etapaAtual) log(`tempo · ${etapaAtual}: ${((agora - inicioEtapa) / 1000).toFixed(2)}s`);
+    etapaAtual = nome;
+    inicioEtapa = agora;
+  };
   const tipo = midia ? (midia.tipo.startsWith('video/') ? 'video' : 'imagem') : 'texto';
   if (!R.aceita.includes(tipo)) {
     log(`pulada: a receita medida cobre ${R.aceita.join(', ')}, e o conteúdo é ${tipo}`, 'am');
@@ -113,6 +122,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     catch (e) { log('✗ ' + e.message, 'er'); return { rede: redeId, erro: e.message }; }
   }
   log(`abrindo ${url} …`);
+  etapa('abrir URL e conectar depuração');
   const tabId = await _motorAbrirAba(url);
   const alvo = { tabId };
   await chrome.debugger.attach(alvo, '1.3');
@@ -134,7 +144,15 @@ async function prepararRede(redeId, midia, texto, opcoes) {
       return await chrome.debugger.sendCommand(alvo, m, p);
     }
   };
-  const naAba = (m, ...a) => _motorNaAba(tabId, m, a);
+  const naAba = async (m, ...a) => {
+    const inicio = Date.now();
+    try { return await _motorNaAba(tabId, m, a); }
+    finally {
+      if (redeId === 'facebook' && m === 'facebookComo') {
+        log(`tempo · checagem do autor: ${((Date.now() - inicio) / 1000).toFixed(2)}s`);
+      }
+    }
+  };
   let facebookIniciado = false;
 
   async function estadoFacebook() {
@@ -209,6 +227,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
   }
 
   try {
+    etapa('trocar para a Página');
     if (R.perfil) {
       const nome = String(opcoes.facebookPagina || '').trim();
       if (!nome) throw new EtapaFalhou('Facebook não está como a página (configure a página na persona)');
@@ -237,6 +256,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
       }
     }
     // ── 1. abrir o compositor (só onde ele é um modal) ────────────────────
+    etapa('abrir compositor');
     if (R.abrir) {
       if (await naAba('existe', R.abrir.esperar)) {
         log('o compositor já estava aberto');
@@ -270,6 +290,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
       }
     }
 
+    etapa('validar autor e vincular compositor');
     await conferirPaginaFacebook();
     if (R.fluxo_facebook) {
       facebookIniciado = await naAba('facebookIniciar', opcoes.facebookPagina);
@@ -277,6 +298,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     }
 
     // ── 2. anexar ─────────────────────────────────────────────────────────
+    etapa('anexar mídia e aguardar prévia');
     if (midia) {
       let a;
       if (R.arquivo_nativo && opcoes.uploadMetodo !== 'sintetico') {
@@ -332,9 +354,11 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     }
 
     // ── 4. avisos por cima da tela ───────────────────────────────────────
+    etapa('dispensar avisos');
     const fechados = await dispensarAvisos(R.dispensar_espera_s || 0);
 
     // ── 5. legenda ───────────────────────────────────────────────────────
+    etapa('escrever legenda');
     if (texto) {
       // Clique REAL no editor antes de escrever: foco por script não basta
       // em todo editor, e o aviso que cobre a tela pegaria as teclas.
@@ -350,6 +374,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     // Facebook: legenda no compositor inicial, depois uma transição por vez.
     // Nunca repetir Avançar enquanto a tela anterior ainda estiver visível.
     if (facebookIniciado) {
+      etapa('avançar telas do Facebook');
       let e = await estadoFacebook();
       for (let n = 0; !e.etapa.startsWith('final_'); n++) {
         if (n >= 2 || !['criar', 'editar_reel'].includes(e.etapa)) throw new EtapaFalhou('etapa do Facebook não reconhecida');
@@ -358,6 +383,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
           throw new EtapaFalhou('a legenda NÃO bate com o que foi escrito');
         }
         const anterior = e.etapa;
+        etapa(`avançar a partir de ${anterior}`);
         const fim = Date.now() + 180000;
         while (!(await naAba('botao', R.avancar)).habilitado) {
           if (Date.now() >= fim) throw new EtapaFalhou('o botão Avançar do Facebook não habilitou em 180s');
@@ -393,6 +419,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     }
 
     // ── 7. conferir ──────────────────────────────────────────────────────
+    etapa('conferir post preparado');
     await new Promise(r => setTimeout(r, 1200));
     const lido = await lerPost();
     const res = { rede: redeId, avisos: fechados, lido };
@@ -417,6 +444,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     }
 
     // ── 8. publicar (só com «Publicar sozinho» ligado) ───────────────────
+    etapa('aguardar botão e publicar');
     // A mesma regra do `apertar_publicar` do app.
     if (res.legendaOk === false) {
       log('✗ NÃO publiquei: a legenda não conferiu — confira a aba', 'er');
@@ -449,6 +477,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     log('cliquei em publicar …');
 
     // confirmação depois do clique: uma janela curta e UM clique só
+    etapa('verificar resultado do clique');
     if (R.confirmar) {
       const fimC = Date.now() + (R.confirmar_espera_s || 0) * 1000;
       for (;;) {
@@ -497,6 +526,8 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     } catch (e2) { /* a aba pode ter fechado; o erro acima já diz o que houve */ }
     return out;
   } finally {
+    etapa('');
+    if (redeId === 'facebook') log(`tempo · total do motor: ${((Date.now() - inicioRede) / 1000).toFixed(2)}s`);
     chrome.debugger.onDetach && chrome.debugger.onDetach.removeListener(aoSoltar);
     try { await chrome.debugger.detach(alvo); } catch (e) { /* já soltou */ }
   }

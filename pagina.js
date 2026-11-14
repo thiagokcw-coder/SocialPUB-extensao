@@ -13,7 +13,7 @@
 // a armadilha do «Criar» (textContent "Novo postCriar", tela só "Criar") e a do
 // «Original» (rótulo num <span> dentro do botão — o innerText do botão é o mesmo).
 (() => {
-  const VERSAO = 8;
+  const VERSAO = 9;
   if (self.SP && self.SP.versao === VERSAO) return;
 
   const INVIS = /[​‌‍﻿⁠]/g;
@@ -131,7 +131,8 @@
      * antes dele. Nunca usa a legenda, o feed ou outro diálogo como prova. */
     facebookComo(nome) {
       const nomes = [];
-      const registrar = s => { const n = norm(s); if (n) nomes.push(n); };
+      const ui = /^(?:Público|Public|Amigos|Friends|Somente eu|Only me|Personalizado|Custom|Rótulo de IA (?:desativado|ativado)|AI label (?:off|on))$/i;
+      const registrar = s => { const n = norm(s); if (n && !ui.test(n)) nomes.push(n); };
       const prefixo = /^(?:Posting as|Publicar como|Publicando como|A publicar como)\s*:?\s+(.+)$/i;
       const pergunta = /^(?:No que você está pensando|What['’]s on your mind|Em que estás a pensar),\s*(.+?)\s*\?$/i;
       const editorSel = '[contenteditable="true"], [role="textbox"], textarea';
@@ -149,8 +150,17 @@
         }
         const editor = editores[0];
         for (const el of dialogo.querySelectorAll('[aria-label], span, strong, a, [role="link"], img')) {
-          if (!visivel(el) || el.closest('[role="dialog"]') !== dialogo
+          if (el.closest('[role="dialog"]') !== dialogo
               || el.closest(editorSel) || el.querySelector(editorSel)) continue;
+          // Ícones de audiência podem ser <img>. Ter uma imagem no botão
+          // não transforma todo o texto desse controle em nome de autor.
+          const botoes = [];
+          for (let p = el; p && p !== dialogo; p = p.parentElement) {
+            if (p.matches('button, [role="button"], [role="combobox"]')) botoes.push(p);
+          }
+          if (botoes.some(b => b.matches('[role="combobox"]') || /(?:Editar privacidade|Edit privacy|Selecionar público|Select audience|Público do post|Post audience|Rótulo de IA|AI label)/i.test(b.getAttribute('aria-label') || ''))) continue;
+          if (botoes.length && !el.matches('img')) continue;
+          if (!visivel(el)) continue;
           for (const s of [el.getAttribute('aria-label'), el.innerText]) {
             const m = norm(s).match(prefixo);
             if (m) registrar(m[1]);
@@ -159,8 +169,6 @@
           // títulos/botões não são nomes; os anexos depois do editor também não.
           if (!(el.compareDocumentPosition(editor) & Node.DOCUMENT_POSITION_FOLLOWING)
               || el.closest(controles)) continue;
-          const botao = el.closest('button, [role="button"]');
-          if (botao && !botao.querySelector('img')) continue;
           if (el.matches('img')) {
             for (const attr of ['aria-label', 'alt']) {
               const s = norm(el.getAttribute(attr));
