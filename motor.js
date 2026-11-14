@@ -135,11 +135,36 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     }
   };
   const naAba = (m, ...a) => _motorNaAba(tabId, m, a);
+  let facebookIniciado = false;
+
+  async function estadoFacebook() {
+    const e = await naAba('facebookEstado', opcoes.facebookPagina);
+    if (!e || !e.ok) {
+      log('autores encontrados no compositor: ' + JSON.stringify(e?.nomes || []), 'er');
+      throw new EtapaFalhou(`Facebook não está como a página ${opcoes.facebookPagina}`);
+    }
+    if (tipo === 'video') { e.midia = e.videos; e.anexos = e.videos > 0; }
+    return e;
+  }
+
+  async function lerPost() {
+    const lido = await naAba('ler', R.legenda, R.anexos || [], R.publicar);
+    if (facebookIniciado) {
+      const estado = await estadoFacebook();
+      if (!estado.etapa.startsWith('final_')) throw new EtapaFalhou('o Facebook saiu da tela de configurações antes de publicar');
+      Object.assign(lido, estado);
+    }
+    return lido;
+  }
 
   async function conferirPaginaFacebook() {
     if (!R.perfil) return;
     const nome = String(opcoes.facebookPagina || '').trim();
-    const lido = nome ? await naAba('facebookComo', nome) : null;
+    let lido = nome ? await naAba('facebookComo', nome) : null;
+    if (facebookIniciado && lido && !lido.nomes.length) {
+      const estado = await estadoFacebook();
+      if (estado.etapa !== 'criar') lido = estado;
+    }
     if (!lido || !lido.ok) {
       log('autores encontrados no compositor: ' + (lido && lido.nomes && lido.nomes.length
         ? lido.nomes.map(n => JSON.stringify(n)).join(', ') : '(nenhum)'), 'er');
@@ -232,6 +257,10 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     }
 
     await conferirPaginaFacebook();
+    if (R.fluxo_facebook) {
+      facebookIniciado = await naAba('facebookIniciar', opcoes.facebookPagina);
+      if (!facebookIniciado) throw new EtapaFalhou('não consegui vincular o compositor à página verificada');
+    }
 
     // ── 2. anexar ─────────────────────────────────────────────────────────
     if (midia) {
@@ -304,6 +333,36 @@ async function prepararRede(redeId, midia, texto, opcoes) {
       log('✓ legenda escrita', 'ok');
     }
 
+    // Facebook: legenda no compositor inicial, depois uma transição por vez.
+    // Nunca repetir Avançar enquanto a tela anterior ainda estiver visível.
+    if (facebookIniciado) {
+      let e = await estadoFacebook();
+      for (let n = 0; !e.etapa.startsWith('final_'); n++) {
+        if (n >= 2 || !['criar', 'editar_reel'].includes(e.etapa)) throw new EtapaFalhou('etapa do Facebook não reconhecida');
+        if (midia && !e.midia) throw new EtapaFalhou('a mídia não apareceu no post');
+        if (e.etapa === 'criar' && texto && !spNormalizar(e.texto).includes(spNormalizar(texto))) {
+          throw new EtapaFalhou('a legenda NÃO bate com o que foi escrito');
+        }
+        const anterior = e.etapa;
+        const fim = Date.now() + 180000;
+        while (!(await naAba('botao', R.avancar)).habilitado) {
+          if (Date.now() >= fim) throw new EtapaFalhou('o botão Avançar do Facebook não habilitou em 180s');
+          await new Promise(r => setTimeout(r, 500));
+          e = await estadoFacebook();
+        }
+        await conferirPaginaFacebook();
+        await clicar(R.avancar, 5000, 'Avançar do Facebook');
+        const limite = Date.now() + 30000;
+        do {
+          await new Promise(r => setTimeout(r, 300));
+          e = await estadoFacebook();
+          if (Date.now() >= limite) throw new EtapaFalhou('o Facebook não mudou de etapa após Avançar');
+        } while (e.etapa === anterior);
+        if (anterior === 'editar_reel' && e.etapa !== 'final_reel') throw new EtapaFalhou('transição inesperada ao configurar o reel');
+        log(`✓ Facebook: ${anterior} → ${e.etapa}`, 'ok');
+      }
+    }
+
     // ── 6. colaboradores (Instagram) ─────────────────────────────────────
     const colabs = (R.colaboradores && opcoes.colaboradores) || [];
     for (const u of colabs) {
@@ -321,7 +380,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
 
     // ── 7. conferir ──────────────────────────────────────────────────────
     await new Promise(r => setTimeout(r, 1200));
-    const lido = await naAba('ler', R.legenda, R.anexos || [], R.publicar);
+    const lido = await lerPost();
     const res = { rede: redeId, avisos: fechados, lido };
     await conferirPaginaFacebook();
     if (texto) {
@@ -365,8 +424,11 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     await conferirPaginaFacebook();
     // O upload pode falhar enquanto esperamos o botão habilitar.
     if (midia && R.anexos && R.anexos.length) {
-      const atual = await naAba('ler', R.legenda, R.anexos, R.publicar);
+      const atual = await lerPost();
       if (!atual.anexos || !atual.midia) throw new EtapaFalhou('a mídia não apareceu no post');
+    }
+    if (facebookIniciado && texto && !spNormalizar((await lerPost()).texto).includes(spNormalizar(texto))) {
+      throw new EtapaFalhou('a legenda mudou antes de publicar');
     }
     const clicado = await clicar(R.publicar, 5000, 'botão de publicar');
     res.clicou = true;
@@ -395,6 +457,13 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     // também casa a receita — e a leva dizia "continua na tela" de um post que
     // tinha saído (13/11). É o `sel` que o app sempre usou.
     res.publicou = await naAba('sumiu', [R.publicar[clicado.idx]], 30000);
+    if (R.fluxo_facebook) {
+      res.botaoSumiu = res.publicou;
+      res.publicou = false;
+      res.publicacaoIncerta = true;
+      log('? clique enviado ao Facebook; publicação ainda não confirmada no feed — confira a aba antes de repetir', 'am');
+      return res;
+    }
     log(res.publicou ? '✓ PUBLICADO: o botão de publicar saiu da tela'
                      : '? cliquei em publicar e o botão CONTINUA na tela depois de 30s — CONFIRA na aba antes de publicar de novo',
         res.publicou ? 'ok' : 'am');

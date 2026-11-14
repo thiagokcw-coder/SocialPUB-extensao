@@ -162,7 +162,10 @@ const RECEITAS = {
     url: 'https://www.facebook.com/',
     aceita: ['imagem', 'video', 'texto'],
     legenda_max: 63206,
-    medido_em: '2026-10-23 (app)',
+    medido_em: '2026-11-13 (Chrome local, pt-BR; vídeo até Postar, sem publicar)',
+    fluxo_facebook: true,
+    avancar: ['Avançar', 'Next', 'Seguinte'].map(texto => ({ css: '[role="dialog"] [role="button"], [role="dialog"] button', texto })),
+    anexos: ['[role="dialog"] video', '[role="dialog"] [aria-label="Remover anexo do post"]', '[role="dialog"] [aria-label="Remove attachment"]', '[role="dialog"] [aria-label="Remove post attachment"]'],
     perfil: {
       // 13/11 (pt-BR): o botão real é aria-label «Conta, seu perfil». Prefixo e
       // trecho, no banner primeiro e depois em qualquer lugar da tela.
@@ -193,13 +196,12 @@ const RECEITAS = {
       esperar: ['[role="dialog"] [role="textbox"]', '[role="dialog"] [contenteditable="true"]'],
     },
     arquivo: ['[role="dialog"] input[type="file"][accept*="video"]', '[role="dialog"] input[type="file"][accept*="image"]', '[role="dialog"] input[type="file"]'],
-    // Duas telas de chegada: vídeo vira «Criar reel» (Postar), imagem fica no
-    // post (Publicar). Escrever durante a troca seria escrever no DOM que sai.
-    depois_do_arquivo: ['[role="dialog"] video', '[role="dialog"] [role="button"][aria-label="Post"]',
-      ...['Post', 'Publicar', 'Postar', 'Next', 'Avançar', 'Seguinte'].map(t => ({ css: '[role="dialog"] [role="button"], [role="dialog"] button', texto: t }))],
+    // Encontrar Avançar não prova que o arquivo entrou. Primeiro exigimos
+    // prévia/remoção; o motor percorre as telas após escrever a legenda.
+    depois_do_arquivo: ['[role="dialog"] video', '[role="dialog"] [aria-label="Remover anexo do post"]', '[role="dialog"] [aria-label="Remove attachment"]', '[role="dialog"] [aria-label="Remove post attachment"]'],
     espera_arquivo_s: 120,
-    // Sem data-testid; o aria-label do editor tem o nome da conta. Sobra o papel.
-    legenda: ['[role="dialog"] [role="textbox"][contenteditable="true"]', '[role="dialog"] [role="textbox"]'],
+    // Editor inicial e descrição do reel; o rótulo pode não conter o autor.
+    legenda: ['[role="dialog"] [role="textbox"][contenteditable="true"]', '[role="dialog"] [role="textbox"]', '[role="dialog"] textarea'],
     publicar: ['Publicar', 'Post', 'Postar', 'Publish'].flatMap(t => [
       `[role="dialog"] [role="button"][aria-label="${t}"]`,
       { css: '[role="dialog"] [role="button"], [role="dialog"] button', texto: t }]),

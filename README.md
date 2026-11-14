@@ -197,6 +197,20 @@ senha.
 
 ## Testes
 
+**0.8.15 — etapas do Facebook:** após anexar e escrever, percorre “Criar post”
+→ “Editar reel” → “Configurações do reel”, aguardando cada transição. Texto
+segue diretamente para “Configurações do post”. Confere mídia e legenda na
+tela final e conserva a identidade apenas enquanto o mesmo diálogo e endereço
+permanecem; outro autor ou outro compositor bloqueia a publicação. Sem publicar
+sozinho, para antes de “Postar”. O desaparecimento do botão após o clique passa
+a ser resultado incerto no Facebook, não confirmação de publicação no feed.
+
+`python tests/test_facebook_fluxo.py` verifica nove cenários em réplicas locais:
+avanços, preparo sem publicar, ausência/perda de vídeo, troca de autor/diálogo,
+legenda perdida e clique final sem confirmação. A medição manual que fundamenta
+o fluxo está em `docs/medicao-facebook-2026-11-13.md`; esta versão ainda precisa
+de teste ponta a ponta na conta real.
+
 **0.8.14 — Facebook pelo link da página:** nome e link HTTPS são pedidos e
 guardados por persona. Ao preparar, a extensão restaura a sessão da conta e
 abre diretamente o link salvo, sem passar pelo menu de perfis. Se a página

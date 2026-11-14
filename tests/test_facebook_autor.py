@@ -66,6 +66,9 @@ async def main():
                 assert OTHER in result['nomes'], (label, result)
         for script in ('receitas.js', 'personas.js', 'motor.js'):
             await page.add_script_tag(content=(ROOT / script).read_text(encoding='utf-8'))
+        # Aqui isolamos os três checkpoints de autor; o fluxo completo de
+        # transições é exercitado em test_facebook_fluxo.py.
+        await page.evaluate('RECEITAS.facebook.fluxo_facebook = false')
         # Motor real com transporte e cliques simulados. Verifica o bloqueio
         # antes do preparo, na conferência e imediatamente antes de publicar.
         for stage in (1, 2, 3):

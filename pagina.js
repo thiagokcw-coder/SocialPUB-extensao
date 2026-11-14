@@ -13,12 +13,13 @@
 // a armadilha do «Criar» (textContent "Novo postCriar", tela só "Criar") e a do
 // «Original» (rótulo num <span> dentro do botão — o innerText do botão é o mesmo).
 (() => {
-  const VERSAO = 6;
+  const VERSAO = 7;
   if (self.SP && self.SP.versao === VERSAO) return;
 
   const INVIS = /[​‌‍﻿⁠]/g;
   const norm = s => String(s || '').replace(INVIS, '').replace(/\s+/g, ' ').trim();
   const pausa = ms => new Promise(r => setTimeout(r, ms));
+  let facebookFluxo = null;
 
   function visivel(el) {
     if (!el || !el.isConnected) return false;
@@ -176,6 +177,46 @@
       return { ok: unicos.length === 1 && unicos[0] === norm(nome).toLocaleLowerCase(), nomes: [...new Set(nomes)] };
     },
 
+    // A identidade só acompanha transições no MESMO diálogo e endereço.
+    // Fechar/reabrir, navegar ou encontrar outro autor invalida a prova.
+    facebookIniciar(nome) {
+      facebookFluxo = null;
+      const autor = this.facebookComo(nome);
+      const editor = Array.from(document.querySelectorAll('[role="dialog"] [contenteditable="true"], [role="dialog"] [role="textbox"], [role="dialog"] textarea')).find(visivel);
+      if (!autor.ok || !editor) return false;
+      let dialogo = editor.closest('[role="dialog"]');
+      while (dialogo.parentElement?.closest('[role="dialog"]')) dialogo = dialogo.parentElement.closest('[role="dialog"]');
+      facebookFluxo = { dialogo, nome: norm(nome).toLocaleLowerCase(), url: location.href };
+      return true;
+    },
+
+    facebookEstado(nome) {
+      const f = facebookFluxo;
+      const autor = this.facebookComo(nome);
+      if (!f || f.nome !== norm(nome).toLocaleLowerCase() || f.url !== location.href || !visivel(f.dialogo)
+          || (autor.nomes.length && !autor.ok)) {
+        facebookFluxo = null;
+        return { ok: false, nomes: autor.nomes };
+      }
+      const d = f.dialogo;
+      const titulos = Array.from(d.querySelectorAll('h1,h2,h3,[role="heading"]')).filter(visivel).map(e => norm(e.innerText));
+      const tem = lista => titulos.some(t => lista.includes(t));
+      const etapa = tem(['Configurações do reel', 'Reel settings', 'Definições do reel']) ? 'final_reel'
+        : tem(['Configurações do post', 'Post settings', 'Definições da publicação']) ? 'final_post'
+        : tem(['Editar reel', 'Edit reel']) ? 'editar_reel'
+        : tem(['Criar post', 'Create post', 'Criar publicação']) ? 'criar' : null;
+      const ed = Array.from(d.querySelectorAll('[contenteditable="true"], [role="textbox"], textarea')).find(visivel);
+      const videos = Array.from(d.querySelectorAll('video')).filter(visivel);
+      // Imagens de prévia, nunca o avatar do cabeçalho. Em Criar post exigimos
+      // também o controle de remoção; nas configurações não há cabeçalho autor.
+      const remover = Array.from(d.querySelectorAll('[aria-label]')).some(e => visivel(e) && /^(Remover anexo do post|Remove attachment|Remove post attachment)$/i.test(e.getAttribute('aria-label')));
+      const imagens = Array.from(d.querySelectorAll('img')).filter(e => visivel(e) && e.naturalWidth > 80 && e.naturalHeight > 80
+        && (etapa === 'final_post' || (remover && ed && (ed.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING))));
+      return { ok: !!etapa && (etapa !== 'criar' || autor.ok), etapa, nomes: autor.nomes,
+        texto: ed ? (ed.value ?? ed.innerText) : (etapa === 'final_post' ? d.innerText : ''),
+        videos: videos.length, anexos: videos.length + imagens.length > 0, midia: videos.length + imagens.length };
+    },
+
     /** O MEDIDOR da extensão: o que está na tela quando uma etapa falha.
      * Endereço, idioma, tamanho da janela, se parece login, os diálogos abertos
      * e os clicáveis visíveis com texto e nomes (aria-label, inclusive dos
@@ -280,9 +321,9 @@
       const an = achar(anexos || [], false);
       const bt = achar(publicar || [], true);
       return {
-        texto: ed ? ed.el.innerText : null,
+        texto: ed ? (ed.el.value ?? ed.el.innerText) : null,
         anexos: !!an,
-        midia: an ? an.el.querySelectorAll('img, video').length : 0,
+        midia: an ? an.el.querySelectorAll('img, video').length + (an.el.matches('img,video') ? 1 : 0) : 0,
         botao: bt ? { existe: true, habilitado: !(bt.el.disabled || bt.el.getAttribute('aria-disabled') === 'true') }
                   : { existe: false },
         url: location.href,
