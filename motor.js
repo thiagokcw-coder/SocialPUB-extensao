@@ -212,14 +212,28 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     if (R.perfil) {
       const nome = String(opcoes.facebookPagina || '').trim();
       if (!nome) throw new EtapaFalhou('Facebook não está como a página (configure a página na persona)');
-      // A aba já abriu diretamente no link salvo, depois de restaurar a
-      // sessão. Algumas páginas ainda pedem «Mudar agora» para agir como elas.
-      for (let i = 0; i < 2; i++) {
-        const s = await naAba('localizar', R.perfil.alternar, i ? 4000 : 8000);
-        if (!s || !s.ok) break;
+      // A URL da página pode abrir ainda como perfil pessoal. Só procurar o
+      // compositor depois de a troca terminar; não repetir clique na recarga.
+      const s = await naAba('localizar', R.perfil.alternar, 8000);
+      const banner = await naAba('facebookBanner');
+      if (s?.ok || banner?.length) {
+        if (!s?.ok) throw new EtapaFalhou(`não consegui trocar para a Página ${nome}`);
         await clicar(R.perfil.alternar, 2000, 'mudar para a página');
         log(`cliquei «${s.texto}» para agir como a página`);
-        await new Promise(r => setTimeout(r, 2500));
+        const fimTroca = Date.now() + 30000;
+        let pronta = false;
+        while (Date.now() < fimTroca) {
+          await new Promise(r => setTimeout(r, 500));
+          // naAba reinjeta os ajudantes e tolera contextos trocados na navegação.
+          const avisos = await naAba('facebookBanner');
+          if (Array.isArray(avisos) && !avisos.length
+              && (await naAba('existe', R.abrir.esperar) || await naAba('existe', R.abrir.clicar))) {
+            pronta = true;
+            break;
+          }
+        }
+        if (!pronta) throw new EtapaFalhou(`não consegui trocar para a Página ${nome}`);
+        log('✓ troca para a Página concluída; banner ausente e compositor disponível', 'ok');
       }
     }
     // ── 1. abrir o compositor (só onde ele é um modal) ────────────────────

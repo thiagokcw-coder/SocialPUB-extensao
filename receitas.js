@@ -177,8 +177,8 @@ const RECEITAS = {
           .flatMap(a => [`[role="button"]${a}`, `button${a}`])),
       // Plano B: abrir a página direto. Quem administra e está como perfil
       // pessoal vê «Mudar agora»/«Switch now» para agir como ela.
-      alternar: ['Mudar agora', 'Alternar agora', 'Switch now', 'Switch Now', 'Mudar', 'Alternar', 'Switch']
-        .map(t => ({ css: '[role="main"] [role="button"], [role="main"] button, [role="dialog"] [role="button"], [role="dialog"] button', texto: t })),
+      alternar: ['Trocar agora', 'Mudar agora', 'Alternar agora', 'Switch now', 'Switch Now', 'Mudar', 'Alternar', 'Switch']
+        .map(t => ({ css: '[role="button"], button', texto: t })),
       todos: ['See all profiles', 'Ver todos os perfis'].map(t => ({ css: '[role="menu"] [role="button"], [role="menuitem"], [role="dialog"] [role="button"], [role="dialog"] button', texto: t })),
       pagina: [{ css: '[role="dialog"] [role="button"], [role="dialog"] [role="radio"], [role="menu"] [role="menuitem"]', texto: '{u}' },
                { css: '[role="dialog"] [role="button"], [role="dialog"] [role="radio"], [role="menu"] [role="menuitem"]', filhoTexto: '{u}' }],

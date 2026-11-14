@@ -13,7 +13,7 @@
 // a armadilha do «Criar» (textContent "Novo postCriar", tela só "Criar") e a do
 // «Original» (rótulo num <span> dentro do botão — o innerText do botão é o mesmo).
 (() => {
-  const VERSAO = 7;
+  const VERSAO = 8;
   if (self.SP && self.SP.versao === VERSAO) return;
 
   const INVIS = /[​‌‍﻿⁠]/g;
@@ -217,6 +217,17 @@
         videos: videos.length, anexos: videos.length + imagens.length > 0, midia: videos.length + imagens.length };
     },
 
+    facebookBanner() {
+      // Só texto visível fora de posts e campos editáveis. Não retorna o
+      // conteúdo inteiro do main/body nem confunde uma legenda com o aviso.
+      const prefixo = /^(?:Troque para a Página(?: de)?\s|Switch into\s)/i;
+      const candidatos = Array.from(document.querySelectorAll('div, span, p, h1, h2, h3'))
+        .filter(e => visivel(e) && !e.closest('[role="article"], article, [contenteditable="true"], [role="textbox"]')
+          && prefixo.test(norm(e.innerText)));
+      return [...new Set(candidatos.filter(e => !candidatos.some(f => f !== e && e.contains(f)))
+        .map(e => norm(e.innerText).slice(0, 400)))];
+    },
+
     /** O MEDIDOR da extensão: o que está na tela quando uma etapa falha.
      * Endereço, idioma, tamanho da janela, se parece login, os diálogos abertos
      * e os clicáveis visíveis com texto e nomes (aria-label, inclusive dos
@@ -250,6 +261,7 @@
         parece_login: /\/(accounts\/login|login|signin|challenge|checkpoint|suspended)/i.test(location.pathname)
           || !!document.querySelector('input[type="password"]'),
         dialogos,
+        facebook_banner_troca: this.facebookBanner(),
         // campos dos diálogos: tipo, name, placeholder e nome — NUNCA o valor
         campos_do_dialogo: campos,
         clicaveis,

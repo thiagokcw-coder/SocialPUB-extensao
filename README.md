@@ -197,6 +197,17 @@ senha.
 
 ## Testes
 
+**0.8.16 — trocar para a Página antes de criar:** reconhece “Trocar agora” e
+os botões de troca no topo/cartão da página. Após clicar uma vez, espera até
+30 segundos pelo desaparecimento do banner e pela disponibilidade do
+compositor. Se a troca não concluir, para com “não consegui trocar para a
+Página …”. O diagnóstico inclui `facebook_banner_troca`. Seletores de criar
+e validações de autor/mídia permanecem os mesmos.
+
+`python tests/test_facebook_troca.py` testa os botões em português/inglês,
+troca atrasada, banner persistente, botão ausente e sessão já como página em
+DOMs locais. Não confirma o comportamento na conta real.
+
 **0.8.15 — etapas do Facebook:** após anexar e escrever, percorre “Criar post”
 → “Editar reel” → “Configurações do reel”, aguardando cada transição. Texto
 segue diretamente para “Configurações do post”. Confere mídia e legenda na
