@@ -100,6 +100,14 @@
       <div class="dica">⚠ <b>Nunca clique em «Sair»</b> numa conta guardada — nem aqui, nem no outro navegador: sair encerra a sessão guardada, e a conta cai na persona também. Para usar uma conta já cadastrada, escolha a persona e clique <b>Entrar de novo</b>, ou prepare a publicação. Se a sessão perder a validade, use <b>Entrar pela tela</b> e salve a nova sessão.</div>
       <div class="dica">⚠ Os cookies dão acesso total à conta. Ficam guardados <b>só nesta extensão, neste navegador</b> — não mande para ninguém nem compartilhe o perfil do navegador.</div>
     </details>
+    <div class="conta">
+      <label class="t" for="cookies-txt">Importar cookies de todas as redes por TXT</label>
+      <p class="dica">Cole as exportações JSON do Cookie-Editor uma após a outra em um arquivo .txt, ou use Netscape. A rede é reconhecida pelo domínio. Use uma conta por rede.</p>
+      <input id="cookies-txt" type="file" accept=".txt,.json,text/plain,application/json">
+      <div class="acoes"><button id="cookies-importar" type="button">Importar TXT para esta persona</button></div>
+      <div class="dica">Substitui as contas das redes encontradas na persona selecionada e preserva as demais. As sessões serão aplicadas ao preparar a publicação ou clicar em Entrar de novo.</div>
+      <div id="cookies-importar-res" class="dica" role="status" aria-live="polite"></div>
+    </div>
     <div id="contas"></div>
   </details>
 

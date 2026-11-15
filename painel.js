@@ -174,6 +174,38 @@ function desenharContas() {
   }).join('');
 }
 
+$('cookies-importar').addEventListener('click', async () => {
+  const p = persona(), id = ATIVA;
+  const res = $('cookies-importar-res'), botao = $('cookies-importar');
+  const arquivo = $('cookies-txt').files[0];
+  res.textContent = '';
+  if (!p) { res.textContent = 'Crie ou selecione uma persona primeiro.'; return; }
+  if (!arquivo) { res.textContent = 'Selecione o arquivo TXT com os cookies.'; return; }
+  if (arquivo.size > 5 * 1024 * 1024) { res.textContent = 'O arquivo deve ter até 5 MB.'; return; }
+  botao.disabled = true;
+  try {
+    const lido = spLerCookiesTodas(await arquivo.text());
+    if (ATIVA !== id || PERSONAS[id] !== p) throw new Error('a persona mudou durante a leitura; selecione o arquivo novamente');
+    const anteriores = p.contas;
+    const novas = { ...anteriores };
+    const linhas = [];
+    for (const [rede, dados] of Object.entries(lido.redes)) {
+      novas[rede] = { usuario: '', cookies: dados.cookies, salvo_em: new Date().toLocaleString('pt-BR') };
+      linhas.push(`${RECEITAS[rede].nome}: ${dados.cookies.length} cookie(s) importado(s)`
+        + (dados.faltando.length ? `; faltam ${dados.faltando.join(', ')} — confira a sessão` : ''));
+    }
+    p.contas = novas;
+    try { await salvar(); }
+    catch (_) { p.contas = anteriores; throw new Error('não foi possível salvar as contas; tente importar novamente'); }
+    desenharPersonas();
+    const i = lido.ignorados;
+    res.textContent = `Importado para «${p.nome}». ${linhas.join(' · ')}.`
+      + ` Ignorados: ${i.outros} de outros domínios, ${i.expirados} expirados, ${i.duplicados} repetidos.`;
+    $('cookies-txt').value = '';
+  } catch (e) { res.textContent = 'Não importado: ' + e.message; }
+  finally { botao.disabled = false; }
+});
+
 function _relatarEntrada(div, r, faltando) {
   const recus = r.recusados.length ? ` · ${r.recusados.length} recusado(s): ${r.recusados.map(x => x.name).join(', ')} (${r.recusados[0].motivo})` : '';
   const falta = faltando && faltando.length

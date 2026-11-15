@@ -51,6 +51,80 @@ function spLerCookies(texto, rede) {
   return { cookies: daRede, faltando: cfg.chaves.filter(k => !nomes.has(k)) };
 }
 
+/** TXT multirrede: JSONs concatenados do Cookie-Editor ou Netscape.
+ * Não infere rede pelo nome: sessionid, por exemplo, pertence a várias redes.
+ * Erros nunca incluem o texto recebido, pois ele contém credenciais. */
+function spLerCookiesTodas(texto) {
+  const t = String(texto || '').replace(/^\uFEFF/, '').trim();
+  if (!t) throw new Error('o arquivo está vazio');
+  let lista = [];
+  if (/^[\[{]/.test(t)) {
+    let inicio = 0;
+    while (inicio < t.length) {
+      while (/\s/.test(t[inicio] || '') && inicio < t.length) inicio++;
+      if (inicio === t.length) break;
+      if (!/[\[{]/.test(t[inicio])) throw new Error('TXT inválido: cole somente as exportações JSON, uma após a outra');
+      let profundidade = 0, aspas = false, escape = false, fim = inicio;
+      for (; fim < t.length; fim++) {
+        const c = t[fim];
+        if (aspas) {
+          if (escape) escape = false;
+          else if (c === '\\') escape = true;
+          else if (c === '"') aspas = false;
+        } else if (c === '"') aspas = true;
+        else if (c === '[' || c === '{') profundidade++;
+        else if (c === ']' || c === '}') { if (--profundidade === 0) { fim++; break; } }
+      }
+      let j;
+      try { j = JSON.parse(t.slice(inicio, fim)); }
+      catch (_) { throw new Error('JSON inválido no TXT; exporte novamente sem editar os valores'); }
+      lista.push(...(Array.isArray(j) ? j : Array.isArray(j?.cookies) ? j.cookies : [j]));
+      inicio = fim;
+    }
+  } else {
+    for (const [i, linha] of t.split(/\r?\n/).entries()) {
+      if (!linha.trim() || (linha.startsWith('#') && !linha.startsWith('#HttpOnly_'))) continue;
+      const campos = linha.replace(/^#HttpOnly_/, '').split('\t');
+      if (campos.length !== 7 || !/^(TRUE|FALSE)$/i.test(campos[1]) || !/^(TRUE|FALSE)$/i.test(campos[3]) || !/^\d+$/.test(campos[4])) {
+        throw new Error(`linha ${i + 1}: use JSON com domain ou Netscape com colunas separadas por tabulação; cabeçalhos name=value sem domínio devem ser colados no campo de cada rede`);
+      }
+      lista.push({ domain: campos[0], hostOnly: campos[1].toUpperCase() === 'FALSE', path: campos[2],
+        secure: campos[3].toUpperCase() === 'TRUE', expirationDate: Number(campos[4]),
+        session: campos[4] === '0', name: campos[5], value: campos[6], httpOnly: linha.startsWith('#HttpOnly_') });
+    }
+  }
+  const grupos = {}, ignorados = { outros: 0, expirados: 0, duplicados: 0 };
+  for (const c of lista) {
+    if (!c || typeof c !== 'object' || typeof c.name !== 'string' || !c.name || typeof c.value !== 'string'
+        || typeof c.domain !== 'string' || !/^\.?[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(c.domain)) {
+      throw new Error('cookie inválido ou sem domínio: cada cookie precisa de domain, name e value em texto');
+    }
+    const rede = Object.keys(SP_COOKIES).find(id => _spDoDominio(c.domain, SP_COOKIES[id].dominios));
+    if (!rede) { ignorados.outros++; continue; }
+    const exp = c.expirationDate ?? c.expires;
+    if (exp != null && !Number.isFinite(Number(exp))) throw new Error('validade de cookie inválida no TXT');
+    if (!c.session && Number(exp) > 0 && Number(exp) < Date.now() / 1000) { ignorados.expirados++; continue; }
+    const cookie = { ...c, domain: c.domain.toLowerCase(), path: c.path || '/' };
+    if (exp != null && Number(exp) > 0) cookie.expirationDate = Number(exp);
+    else { delete cookie.expirationDate; cookie.session = true; }
+    const grupo = grupos[rede] ||= new Map();
+    const chave = cookie.domain.replace(/^\./, '') + '|' + cookie.path + '|' + cookie.name;
+    if (grupo.has(chave)) {
+      if (grupo.get(chave).value !== cookie.value) throw new Error(`cookies conflitantes em ${rede}: use apenas uma conta por rede no TXT`);
+      ignorados.duplicados++;
+    }
+    grupo.set(chave, cookie);
+  }
+  const redes = {};
+  for (const [id, grupo] of Object.entries(grupos)) {
+    const cookies = [...grupo.values()];
+    const nomes = new Set(cookies.map(c => c.name));
+    redes[id] = { cookies, faltando: SP_COOKIES[id].chaves.filter(k => !nomes.has(k)) };
+  }
+  if (!Object.keys(redes).length) throw new Error('nenhum cookie válido das redes suportadas no TXT (verifique domínios e validade)');
+  return { redes, ignorados };
+}
+
 /** Um cookie do Cookie-Editor → os detalhes do chrome.cookies.set.
  * `__Secure-` exige secure; `__Host-` exige secure, path "/" e SEM domínio
  * (o navegador recusa o que viole — lição do Google no app, 05/11). */

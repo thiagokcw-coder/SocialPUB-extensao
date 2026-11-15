@@ -63,6 +63,26 @@ necessário fazer login e verificação novamente.
 O Threads entra pela conta do Instagram: se ele oferecer «Continuar como @…» de
 outra conta, escolha entrar com usuário e senha.
 
+### Importar todas as redes em um TXT
+
+Em **Contas da persona → Importar cookies de todas as redes por TXT**, selecione
+um arquivo e clique em **Importar TXT para esta persona**. Cole no TXT as
+exportações JSON do Cookie-Editor, uma após a outra, sem títulos entre elas.
+Também aceita uma lista JSON única, um objeto com `cookies` ou o formato
+Netscape (colunas separadas por tabulação, incluindo `#HttpOnly_`). Limite: 5 MB.
+
+A extensão identifica X/Twitter, Instagram, TikTok, Threads e Facebook pelo
+`domain`. Cada cookie JSON precisa de `domain`, `name` e `value`. Cabeçalhos
+como `sessionid=…` sem domínio continuam disponíveis no campo individual de
+cada rede; não permitem reconhecimento automático.
+
+A importação substitui as contas das redes encontradas na persona selecionada,
+preserva as outras e informa cookies expirados, repetidos, de outros domínios
+e chaves de autenticação ausentes. Use apenas uma conta por rede no arquivo;
+cookies com mesmo domínio, caminho e nome, mas valores diferentes, bloqueiam
+a importação. O TXT é lido localmente. Para aplicar a sessão ao navegador,
+clique em **Entrar de novo** ou prepare a publicação.
+
 ### Como adicionar uma conta — jeito 2: Cookie-Editor
 
 1. No navegador onde você **já está logado** na conta, instale o
@@ -196,6 +216,9 @@ senha.
 - Link `blob:` não serve. Acima de ~60 MB o painel avisa.
 
 ## Testes
+
+**0.8.22 — cookies de todas as redes por TXT:** importação na persona ativa,
+com reconhecimento por domínio, JSONs concatenados ou Netscape e relatório por rede.
 
 **0.8.21 — Facebook sempre como Uncensored Brasil:** o motor abre
 `https://www.facebook.com/uncensoredbrasil`, independentemente do destino da
