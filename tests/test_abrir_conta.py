@@ -24,6 +24,20 @@ async def main():
             return {entrou:!window.failSession,gravados:1,recusados:window.failSession?[{}]:[]};};
           desenharContas();
         }''')
+        assert await page.locator('#contas button:visible').count() == 5
+        assert await page.locator('#contas .entrar, #contas .abrir').count() == 0
+        await page.locator('.conta[data-rede="instagram"] .conta-gerenciar > summary').click()
+        await page.locator('.conta[data-rede="instagram"] details.conta-metodo > summary').click()
+        await page.locator('.conta[data-rede="instagram"] .ck').fill('[{"domain":".instagram.com","name":"sessionid","value":"fake"}]')
+        await page.evaluate('events=[]')
+        await page.locator('.conta[data-rede="instagram"] .salvar').click()
+        await page.wait_for_function("document.querySelector('.conta[data-rede=instagram] .res').textContent.includes('Cookies salvos')")
+        assert await page.evaluate('events.length') == 0
+        await page.locator('.conta[data-rede="instagram"] .conta-gerenciar > summary').click()
+        await page.set_viewport_size({'width':390,'height':844})
+        assert await page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+        await page.set_viewport_size({'width':1280,'height':900})
+        await page.evaluate("PERSONAS.p.contas.instagram.cookies=[{name:'fake',value:'instagram'}]; desenharContas()")
         urls = {'x':'https://x.com/', 'instagram':'https://www.instagram.com/', 'tiktok':'https://www.tiktok.com/',
                 'threads':'https://www.threads.com/', 'facebook':'https://www.facebook.com/uncensoredbrasil'}
         for rede,url in urls.items():

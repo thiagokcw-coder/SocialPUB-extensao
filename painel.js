@@ -153,24 +153,33 @@ function desenharContas() {
   $('contas').innerHTML = ORDEM_REDES.map(id => {
     const c = contas[id];
     const estado = c
-      ? `<span class="ok">${c.usuario ? '@' + _esc(c.usuario) + ' · ' : ''}${c.cookies.length} cookie(s) · ${_esc(c.salvo_em)}</span>`
-      : '<span class="dica">nenhuma guardada</span>';
+      ? `<span class="conta-status ok">Sessão salva${c.usuario ? ' · @' + _esc(c.usuario) : ''}</span>`
+      : '<span class="conta-status">Não configurada</span>';
     return `<div class="conta" data-rede="${id}">
-      <div class="conta-topo"><b>${_esc(RECEITAS[id].nome)}</b> ${estado}</div>
-      <input type="text" class="usuario" placeholder="@ da conta (só para você lembrar)" value="${c ? _esc(c.usuario) : ''}" style="margin-top:6px">
-      <div class="acoes">
-        <button class="sec tela">Entrar pela tela</button>
-        <button class="capturar">Salvar a sessão do navegador</button>
+      <div class="conta-topo"><div><b>${_esc(RECEITAS[id].nome)}</b>${estado}</div>
+        <button class="abrir-conta" ${c ? '' : 'disabled'} aria-label="Abrir conta do ${_esc(RECEITAS[id].nome)}">Abrir conta</button>
       </div>
-      <div class="dica" style="margin-top:6px">ou, com o Cookie-Editor, cole os cookies:</div>
-      <textarea class="ck" placeholder='[{"domain":".${SP_COOKIES[id].dominios[0]}","name":"…","value":"…"}] — exportado pelo Cookie-Editor'></textarea>
-      <div class="acoes">
-        <button class="salvar">Salvar e entrar</button>
-        ${c ? '<button class="sec entrar">Entrar de novo</button><button class="sec apagar">Esquecer</button>' : ''}
-        <button class="abrir-conta" ${c ? '' : 'disabled'}>Abrir conta já logada</button>
-        <button class="sec abrir">Abrir ${_esc(RECEITAS[id].nome)}</button>
-      </div>
-      <div class="dica res"></div>
+      <details class="conta-gerenciar">
+        <summary>${c ? 'Gerenciar conta' : 'Adicionar conta'}</summary>
+        <div class="conta-config">
+          ${c ? `<div class="dica">Sessão salva em ${_esc(c.salvo_em)} · ${c.cookies.length} cookie(s)</div>` : ''}
+          <label class="t" for="usuario-${id}">Identificação da conta (opcional)</label>
+          <input id="usuario-${id}" type="text" class="usuario" placeholder="@ da conta, para você lembrar" value="${c ? _esc(c.usuario) : ''}">
+          <div class="conta-metodo">
+            <b>Usar o navegador</b>
+            <p class="dica">Entre na rede e depois salve a sessão. Se já estiver na conta certa, basta salvar.</p>
+            <div class="acoes"><button class="sec tela">1. Fazer login</button><button class="sec capturar">2. Salvar sessão atual</button></div>
+          </div>
+          <details class="conta-metodo">
+            <summary>Importar cookies desta rede</summary>
+            <label class="t" for="ck-${id}">Cole a exportação do Cookie-Editor</label>
+            <textarea id="ck-${id}" class="ck" placeholder='[{"domain":".${SP_COOKIES[id].dominios[0]}","name":"…","value":"…"}]'></textarea>
+            <div class="acoes"><button class="sec salvar">Salvar cookies</button></div>
+          </details>
+          ${c ? '<div class="conta-remover"><button class="sec apagar">Remover conta da persona</button></div>' : ''}
+        </div>
+      </details>
+      <div class="dica res" role="status" aria-live="polite"></div>
     </div>`;
   }).join('');
 }
@@ -207,16 +216,6 @@ $('cookies-importar').addEventListener('click', async () => {
   finally { botao.disabled = false; }
 });
 
-function _relatarEntrada(div, r, faltando) {
-  const recus = r.recusados.length ? ` · ${r.recusados.length} recusado(s): ${r.recusados.map(x => x.name).join(', ')} (${r.recusados[0].motivo})` : '';
-  const falta = faltando && faltando.length
-    ? `<div class="am">⚠ não vieram ${_esc(faltando.join(', '))} — normalmente são eles que autenticam; exporte de novo na página logada</div>` : '';
-  div.querySelector('.res').innerHTML =
-    (r.entrou
-      ? `<span class="${r.recusados.length ? 'am' : 'ok'}">✓ ${r.gravados} cookie(s) gravado(s) no navegador (${r.apagados} da sessão anterior apagados)${_esc(recus)} — clique em Abrir para conferir</span>`
-      : `<span class="er">✗ não entrou: ${r.gravados} gravado(s)${_esc(recus)} — a sessão anterior ficou como estava</span>`) + falta;
-}
-
 $('contas').addEventListener('click', async ev => {
   const div = ev.target.closest('.conta');
   const p = persona();
@@ -246,12 +245,6 @@ $('contas').addEventListener('click', async ev => {
       } finally { botao.disabled = false; }
       return;
     }
-    if (ev.target.classList.contains('abrir')) {
-      const url = rede === 'facebook' ? spUrlPaginaFacebook(p.facebook_pagina_url)
-        : RECEITAS[rede].url.replace(/\/(compose\/post|tiktokstudio\/upload|post\/create)$/, '/');
-      await chrome.tabs.create({ url, active: true });
-      return;
-    }
     if (ev.target.classList.contains('apagar')) {
       if (!confirm(`Esquecer a conta do ${RECEITAS[rede].nome} de «${p.nome}»? (A sessão que já está no navegador continua.)`)) return;
       delete p.contas[rede];
@@ -259,22 +252,18 @@ $('contas').addEventListener('click', async ev => {
       desenharPersonas();
       return;
     }
-    if (ev.target.classList.contains('entrar')) {
-      _relatarEntrada(div, await spEntrar(rede, p.contas[rede].cookies), null);
-      return;
-    }
     if (ev.target.classList.contains('tela')) {
       const nome = RECEITAS[rede].nome;
       if (!confirm(`Entrar no ${nome} pela tela, para «${p.nome}».\n\n`
         + `A sessão do ${nome} que está neste navegador sai DAQUI (não é «Sair»: guardada em outra persona, ela continua valendo). `
         + `Se ela não estiver guardada em nenhuma persona, será preciso entrar de novo nela.\n\n`
-        + `Na página que vai abrir, entre com usuário e senha. Depois volte aqui e clique «Salvar a sessão do navegador».`)) return;
+        + `Na página que vai abrir, entre com usuário e senha. Depois volte aqui e clique «2. Salvar sessão atual».`)) return;
       const n = await spSairLocal(rede);
       await chrome.tabs.create({ url: SP_LOGIN[rede], active: true });
       const threads = rede === 'threads'
         ? ' O Threads entra pela conta do Instagram: se oferecer «Continuar como @…» de OUTRA conta, escolha entrar com usuário e senha.' : '';
       res.innerHTML = `<span class="am">→ página de login do ${_esc(nome)} aberta (${n} cookie(s) da sessão anterior tirados deste navegador). `
-        + `Entre na conta de «${_esc(p.nome)}», volte aqui e clique «Salvar a sessão do navegador».${_esc(threads)}</span>`;
+        + `Entre na conta de «${_esc(p.nome)}», volte aqui e clique «2. Salvar sessão atual».${_esc(threads)}</span>`;
       return;
     }
     if (ev.target.classList.contains('capturar')) {
@@ -287,13 +276,12 @@ $('contas').addEventListener('click', async ev => {
       await salvar();
       desenharPersonas();
       const novo = document.querySelector(`.conta[data-rede="${rede}"] .res`);
-      novo.innerHTML = `<span class="ok">✓ sessão guardada em «${_esc(p.nome)}»: ${lido.cookies.length} cookie(s) — confira com Abrir</span>`
+      novo.innerHTML = `<span class="ok">✓ sessão guardada em «${_esc(p.nome)}»: ${lido.cookies.length} cookie(s) — confira com Abrir conta</span>`
         + (lido.faltando.length ? `<div class="am">⚠ não há ${_esc(lido.faltando.join(', '))} — o login pode não ter terminado; termine na página e salve de novo</div>` : '');
       return;
     }
-    // Salvar e entrar
+    // Guardar cookies; Abrir conta aplica a sessão quando necessário.
     const lido = spLerCookies(div.querySelector('.ck').value, rede);
-    const r = await spEntrar(rede, lido.cookies);
     p.contas[rede] = {
       usuario: div.querySelector('.usuario').value.trim().replace(/^@/, ''),
       cookies: lido.cookies,
@@ -301,7 +289,8 @@ $('contas').addEventListener('click', async ev => {
     };
     await salvar();
     desenharPersonas();
-    _relatarEntrada(document.querySelector(`.conta[data-rede="${rede}"]`), r, lido.faltando);
+    document.querySelector(`.conta[data-rede="${rede}"] .res`).textContent = 'Cookies salvos. Use Abrir conta para acessar a rede.'
+      + (lido.faltando.length ? ` Faltam ${lido.faltando.join(', ')}; confira a sessão exportada.` : '');
   } catch (e) {
     res.innerHTML = `<span class="er">✗ ${_esc(e && e.message ? e.message : e)}</span>`;
   }

@@ -28,6 +28,18 @@
   .conta textarea { min-height: 54px; margin-top:6px; font:12px ui-monospace, Consolas, monospace; }
   .conta .acoes { display:flex; gap:6px; margin-top:6px; flex-wrap:wrap; }
   .conta button { padding:6px 10px; font-size:12px; }
+  .conta-topo { align-items:center; flex-wrap:wrap; }
+  .conta-status { display:block; color:var(--mt); font-size:12px; margin-top:3px; }
+  .conta-gerenciar { margin-top:10px; }
+  .conta-gerenciar > summary { color:var(--mt); font-size:12px; width:fit-content; }
+  .conta-config { margin-top:10px; padding:12px; border:1px solid var(--bd); border-radius:8px; }
+  .conta-config label.t { margin-top:10px; }
+  .conta-metodo { margin-top:14px; font-size:12px; }
+  .conta-metodo p { margin:4px 0 8px; }
+  .conta-remover { border-top:1px solid var(--bd); margin-top:16px; padding-top:12px; }
+  .conta-remover button.sec { color:var(--er); }
+  .conta .res:empty { display:none; }
+  button:focus-visible, summary:focus-visible { outline:2px solid #a5b4fc; outline-offset:3px; }
   button.sec { background: transparent; border:1px solid var(--bd); color: var(--tx); }
   .persona-barra .linha { display:flex; gap:6px; flex-wrap:wrap; }
   .persona-barra select { flex:1; min-width:200px; background:var(--bg); color:var(--tx); border:1px solid var(--bd); border-radius:8px; padding:8px; font:inherit; }
@@ -76,17 +88,16 @@
 
   <details class="caixa" id="contas-caixa">
     <summary><b>Contas da persona</b> <span class="dica" id="contas-resumo"></span></summary>
-    <div class="dica" style="margin:8px 0 6px">Uma conta por rede, por persona. Dois jeitos de guardar a conta: <b>entrar pela tela</b> (usuário e senha, aqui) ou <b>colar os cookies</b> de um navegador onde ela já está logada.</div>
-    <div class="dica"><b>Cadastre uma vez.</b> Depois, escolha a persona e prepare a publicação: a sessão guardada é reutilizada automaticamente. Use <b>Abrir conta já logada</b> para aplicar a sessão salva e abrir a rede diretamente. <b>Entrar de novo</b> apenas restaura a sessão no navegador. <b>Entrar pela tela</b> é para cadastrar ou renovar uma sessão; a rede ainda pode pedir verificação se ela deixar de ser válida.</div>
-    <details class="como" open>
+    <p class="dica">Use <b>Abrir conta</b> para acessar a rede com a sessão salva da persona. Para cadastrar ou atualizar uma sessão, abra as opções da conta.</p>
+    <details class="como">
       <summary><b>Como adicionar uma conta</b> (2 minutos por rede)</summary>
       <p style="margin:8px 0 4px"><b>Jeito 1 — entrar pela tela</b> (sem instalar nada)</p>
       <ol>
         <li>Escolha a <b>persona</b> no topo e abra <b>Contas da persona</b>.</li>
-        <li>Na rede, clique <b>Entrar pela tela</b>. A página de login da rede abre numa aba nova.</li>
+        <li>Na rede, abra <b>Adicionar conta</b> ou <b>Gerenciar conta</b> e clique <b>1. Fazer login</b>. A página de login da rede abre numa aba nova.</li>
         <li>Entre com <b>usuário e senha</b> da conta (e o código, se a rede pedir). A senha fica na página da rede — a extensão não vê nem guarda.</li>
-        <li>Volte a esta aba, escreva o @ (só para lembrar) e clique <b>Salvar a sessão do navegador</b>. Deve aparecer <span class="ok">✓ sessão guardada</span>.</li>
-        <li>Para a outra persona, repita: o <b>Entrar pela tela</b> tira daqui a sessão anterior sem encerrá-la — ela continua guardada na persona dela.</li>
+        <li>Volte a esta aba, escreva o @ (só para lembrar) e clique <b>2. Salvar sessão atual</b>. Deve aparecer <span class="ok">✓ sessão guardada</span>.</li>
+        <li>Para a outra persona, repita: o <b>1. Fazer login</b> tira daqui a sessão anterior sem encerrá-la — ela continua guardada na persona dela.</li>
       </ol>
       <p style="margin:8px 0 4px"><b>Jeito 2 — colar os cookies</b> (a conta já está logada em outro navegador)</p>
       <ol>
@@ -94,10 +105,10 @@
           <a href="https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm" target="_blank" rel="noopener"><b>Cookie-Editor</b></a> (Chrome Web Store, grátis).</li>
         <li>Abra a rede <b>logada na conta certa</b>: <code>instagram.com</code>, <code>x.com</code>, <code>tiktok.com</code>, <code>threads.com</code> ou <code>facebook.com</code>. Cada rede tem a sua exportação — os cookies de uma não servem para outra.</li>
         <li>Clique no ícone do Cookie-Editor → <b>Export</b> (Exportar) → <b>JSON</b>. Os cookies vão para a área de transferência.</li>
-        <li>Aqui: escolha a <b>persona</b> no topo, abra <b>Contas da persona</b>, cole no campo da rede, escreva o @ (só para lembrar) e clique <b>Salvar e entrar</b>.</li>
-        <li>Confira: deve aparecer <span class="ok">✓ … cookie(s) gravado(s)</span>. Clique em <b>Abrir</b> e veja a rede logada. Se avisar que faltaram cookies (<code>sessionid</code>, <code>auth_token</code>…), exporte de novo com a página logada.</li>
+        <li>Aqui: escolha a <b>persona</b> no topo, abra <b>Contas da persona</b>, cole no campo da rede, escreva o @ (só para lembrar) e clique <b>Salvar cookies</b>.</li>
+        <li>Confira a mensagem de cookies salvos. Clique em <b>Abrir conta</b> e veja a rede logada. Se avisar que faltaram cookies (<code>sessionid</code>, <code>auth_token</code>…), exporte de novo com a página logada.</li>
       </ol>
-      <div class="dica">⚠ <b>Nunca clique em «Sair»</b> numa conta guardada — nem aqui, nem no outro navegador: sair encerra a sessão guardada, e a conta cai na persona também. Para usar uma conta já cadastrada, escolha a persona e clique <b>Entrar de novo</b>, ou prepare a publicação. Se a sessão perder a validade, use <b>Entrar pela tela</b> e salve a nova sessão.</div>
+      <div class="dica">⚠ <b>Nunca clique em «Sair»</b> numa conta guardada — nem aqui, nem no outro navegador: sair encerra a sessão guardada, e a conta cai na persona também. Para usar uma conta já cadastrada, escolha a persona e clique <b>Abrir conta</b>, ou prepare a publicação. Se a sessão perder a validade, use <b>1. Fazer login</b> e salve a nova sessão.</div>
       <div class="dica">⚠ Os cookies dão acesso total à conta. Ficam guardados <b>só nesta extensão, neste navegador</b> — não mande para ninguém nem compartilhe o perfil do navegador.</div>
     </details>
     <div class="conta">
@@ -105,7 +116,7 @@
       <p class="dica">Cole as exportações JSON do Cookie-Editor uma após a outra em um arquivo .txt, ou use Netscape. A rede é reconhecida pelo domínio. Use uma conta por rede.</p>
       <input id="cookies-txt" type="file" accept=".txt,.json,text/plain,application/json">
       <div class="acoes"><button id="cookies-importar" type="button">Importar TXT para esta persona</button></div>
-      <div class="dica">Substitui as contas das redes encontradas na persona selecionada e preserva as demais. As sessões serão aplicadas ao preparar a publicação ou clicar em Entrar de novo.</div>
+      <div class="dica">Substitui as contas das redes encontradas na persona selecionada e preserva as demais. As sessões serão aplicadas ao preparar a publicação ou clicar em Abrir conta.</div>
       <div id="cookies-importar-res" class="dica" role="status" aria-live="polite"></div>
     </div>
     <div id="contas"></div>

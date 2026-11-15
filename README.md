@@ -217,6 +217,12 @@ senha.
 
 ## Testes
 
+**0.8.24 — contas com interface simplificada:** uma ação principal, **Abrir
+conta**, aplica a sessão salva e abre a rede. Cadastro, renovação, cookies e
+remoção ficam recolhidos em **Gerenciar conta** (ou **Adicionar conta**).
+Removidos os botões redundantes de abrir a rede e entrar de novo. **Salvar
+cookies** apenas guarda a sessão; **Abrir conta** a aplica ao navegador.
+
 **0.8.23 — abrir conta já logada:** cada rede tem um botão que aplica os
 cookies salvos da persona e abre a rede em uma nova aba, sem usar a tela de
 login. Fica desabilitado quando não há conta salva. Se algum cookie for
