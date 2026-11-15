@@ -217,6 +217,12 @@ senha.
 
 ## Testes
 
+**0.8.23 — abrir conta já logada:** cada rede tem um botão que aplica os
+cookies salvos da persona e abre a rede em uma nova aba, sem usar a tela de
+login. Fica desabilitado quando não há conta salva. Se algum cookie for
+recusado, não abre a aba. Facebook abre Uncensored Brasil. Sessões expiradas
+podem exigir renovação na rede.
+
 **0.8.22 — cookies de todas as redes por TXT:** importação na persona ativa,
 com reconhecimento por domínio, JSONs concatenados ou Netscape e relatório por rede.
 

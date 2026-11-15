@@ -167,6 +167,7 @@ function desenharContas() {
       <div class="acoes">
         <button class="salvar">Salvar e entrar</button>
         ${c ? '<button class="sec entrar">Entrar de novo</button><button class="sec apagar">Esquecer</button>' : ''}
+        <button class="abrir-conta" ${c ? '' : 'disabled'}>Abrir conta já logada</button>
         <button class="sec abrir">Abrir ${_esc(RECEITAS[id].nome)}</button>
       </div>
       <div class="dica res"></div>
@@ -223,6 +224,28 @@ $('contas').addEventListener('click', async ev => {
   const rede = div.dataset.rede;
   const res = div.querySelector('.res');
   try {
+    if (ev.target.classList.contains('abrir-conta')) {
+      const conta = p.contas[rede];
+      if (!conta?.cookies?.length) throw new Error('salve ou importe a conta desta rede primeiro');
+      const botao = ev.target;
+      botao.disabled = true;
+      res.textContent = 'Aplicando a sessão salva e abrindo a conta…';
+      try {
+        const r = await spEntrar(rede, conta.cookies);
+        if (!r.entrou || r.recusados.length) {
+          res.textContent = `Não abri a conta: ${r.gravados} cookie(s) aplicado(s), ${r.recusados.length} recusado(s). Importe a sessão novamente.`;
+          return;
+        }
+        const urls = {
+          x: 'https://x.com/', instagram: 'https://www.instagram.com/',
+          tiktok: 'https://www.tiktok.com/', threads: 'https://www.threads.com/',
+          facebook: 'https://www.facebook.com/uncensoredbrasil',
+        };
+        await chrome.tabs.create({ url: urls[rede], active: true });
+        res.textContent = `Conta de «${p.nome}» aberta com a sessão salva. Se a rede pedir login, renove a sessão.`;
+      } finally { botao.disabled = false; }
+      return;
+    }
     if (ev.target.classList.contains('abrir')) {
       const url = rede === 'facebook' ? spUrlPaginaFacebook(p.facebook_pagina_url)
         : RECEITAS[rede].url.replace(/\/(compose\/post|tiktokstudio\/upload|post\/create)$/, '/');
