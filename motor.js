@@ -12,18 +12,37 @@
 
 const ESPERA_PADRAO_MS = 30000;
 
+function _motorPrazo(promessa, descricao, ms = 45000) {
+  let timer;
+  return Promise.race([promessa, new Promise((_, rejeitar) => {
+    timer = setTimeout(() => rejeitar(new Error(`${descricao}: tempo limite de ${ms / 1000}s; fluxo interrompido`)), ms);
+  })]).finally(() => clearTimeout(timer));
+}
+
 async function _motorAbrirAba(url) {
-  const tab = await chrome.tabs.create({ url, active: true });
-  await new Promise(res => {
-    const ouvir = (id, info) => {
-      if (id === tab.id && info.status === 'complete') { chrome.tabs.onUpdated.removeListener(ouvir); res(); }
-    };
-    chrome.tabs.onUpdated.addListener(ouvir);
-    chrome.tabs.get(tab.id).then(t => {
-      if (t.status === 'complete') { chrome.tabs.onUpdated.removeListener(ouvir); res(); }
-    });
-  });
-  return tab.id;
+  const tab = await _motorPrazo(chrome.tabs.create({ url, active: true }), 'abrir aba');
+  const fim = Date.now() + 45000;
+  while (Date.now() < fim) {
+    if ((await _motorPrazo(chrome.tabs.get(tab.id), 'consultar aba')).status === 'complete') return tab.id;
+    await new Promise(r => setTimeout(r, 250));
+  }
+  throw new Error('carregamento da aba não terminou em 45s; verifique avisos de navegação');
+}
+
+async function _motorLimparFacebook(log) {
+  log('limpeza: procurando abas com Criar post / Editar reel de execuções anteriores');
+  const abas = await _motorPrazo(chrome.tabs.query({ url: ['https://*.facebook.com/*', 'https://facebook.com/*'] }), 'listar abas do Facebook');
+  const guardado = await _motorPrazo(chrome.storage.session.get('facebookAbaMotor'), 'ler aba anterior');
+  for (const aba of abas) {
+    const antiga = aba.id === guardado.facebookAbaMotor;
+    const suja = antiga || await _motorPrazo(_motorNaAba(aba.id, 'facebookCompositorAberto', []), 'inspecionar compositor anterior');
+    if (suja) {
+      // Fechar a aba descarta o compositor sem navegar nem acionar Publicar.
+      await _motorPrazo(chrome.tabs.remove(aba.id), 'fechar aba anterior');
+      log(`limpeza: aba ${aba.id} fechada; compositor descartado sem publicar`);
+    }
+  }
+  log('limpeza: concluída; iniciando em uma aba nova');
 }
 
 /** Roda `SP[metodo](...args)` dentro da aba, injetando o pagina.js antes
@@ -118,14 +137,35 @@ async function prepararRede(redeId, midia, texto, opcoes) {
 
   let url = R.url;
   if (R.perfil) {
+    opcoes = { ...opcoes, facebookPagina: 'Uncensored Brasil', facebookPaginaUrl: 'https://www.facebook.com/uncensoredbrasil' };
     try { url = spUrlPaginaFacebook(opcoes.facebookPaginaUrl); }
     catch (e) { log('✗ ' + e.message, 'er'); return { rede: redeId, erro: e.message }; }
   }
   log(`abrindo ${url} …`);
   etapa('abrir URL e conectar depuração');
-  const tabId = await _motorAbrirAba(url);
+  let tabId;
+  try {
+    if (R.perfil) await _motorLimparFacebook(log);
+    tabId = await _motorAbrirAba(url);
+    if (R.perfil) await _motorPrazo(chrome.storage.session.set({ facebookAbaMotor: tabId }), 'registrar aba limpa');
+    await _motorPrazo(chrome.debugger.attach({ tabId }, '1.3'), 'conectar depuração');
+    log('aba limpa carregada; depuração conectada');
+  } catch (e) {
+    log('✗ inicialização: ' + e.message, 'er');
+    return { rede: redeId, erro: e.message };
+  }
   const alvo = { tabId };
-  await chrome.debugger.attach(alvo, '1.3');
+  let navegou = false, vigiarNavegacao = false;
+  const aoNavegar = (id, info) => {
+    if (id === tabId && vigiarNavegacao && (info.status === 'loading' || info.url)) {
+      navegou = true;
+      log('✗ Facebook recarregou ou mudou de página; fluxo interrompido, inicie novamente pela Página', 'er');
+    }
+  };
+  if (R.perfil) chrome.tabs.onUpdated.addListener(aoNavegar);
+  const checarNavegacao = () => {
+    if (navegou) throw new EtapaFalhou('Facebook navegou durante o fluxo; identidade invalidada. Reinicie pela Página Uncensored Brasil');
+  };
   // A depuração pode CAIR no meio (TikTok, 13/11: «Debugger is not attached»,
   // durante a espera do upload). Religa e repete o comando — a não ser que
   // tenha sido você, no «Cancelar» da faixa amarela: aí para, com o motivo.
@@ -133,20 +173,27 @@ async function prepararRede(redeId, midia, texto, opcoes) {
   const aoSoltar = (fonte, motivo) => { if (fonte.tabId === tabId) soltou = motivo; };
   chrome.debugger.onDetach && chrome.debugger.onDetach.addListener(aoSoltar);
   const cmd = async (m, p) => {
+    checarNavegacao();
     try {
-      return await chrome.debugger.sendCommand(alvo, m, p);
+      return await _motorPrazo(chrome.debugger.sendCommand(alvo, m, p), 'depuração · ' + m);
     } catch (e) {
       if (!/not attached/i.test(String(e && e.message ? e.message : e))) throw e;
       if (soltou === 'canceled_by_user') throw new EtapaFalhou('a depuração foi cancelada na faixa amarela — parei');
       log(`a depuração caiu${soltou ? ' (' + soltou + ')' : ''} — religando`, 'am');
       soltou = null;
-      await chrome.debugger.attach(alvo, '1.3');
-      return await chrome.debugger.sendCommand(alvo, m, p);
+      await _motorPrazo(chrome.debugger.attach(alvo, '1.3'), 'reconectar depuração');
+      checarNavegacao();
+      return await _motorPrazo(chrome.debugger.sendCommand(alvo, m, p), 'depuração · ' + m);
     }
   };
   const naAba = async (m, ...a) => {
     const inicio = Date.now();
-    try { return await _motorNaAba(tabId, m, a); }
+    try {
+      checarNavegacao();
+      const resultado = await _motorPrazo(_motorNaAba(tabId, m, a), 'leitura da aba · ' + m, 60000);
+      checarNavegacao();
+      return resultado;
+    }
     finally {
       if (redeId === 'facebook' && m === 'facebookComo') {
         log(`tempo · checagem do autor: ${((Date.now() - inicio) / 1000).toFixed(2)}s`);
@@ -201,6 +248,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
   async function conferirPaginaFacebook() {
     if (!R.perfil) return;
     const nome = String(opcoes.facebookPagina || '').trim();
+    if (!(await naAba('facebookConta', nome))?.ok) throw new EtapaFalhou('avatar da Página não confirmado; publicação bloqueada');
     let lido = nome ? await naAba('facebookComo', nome) : null;
     if (facebookIniciado && lido && !lido.nomes.length) {
       const estado = await estadoFacebook();
@@ -260,6 +308,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
       const s = await naAba('localizar', R.perfil.alternar, 8000);
       const banner = await naAba('facebookBanner');
       if (s?.ok || banner?.length) {
+        log('troca de perfil: necessária');
         if (!s?.ok) throw new EtapaFalhou(`não consegui trocar para a Página ${nome}`);
         await clicar(R.perfil.alternar, 2000, 'mudar para a página');
         log(`cliquei «${s.texto}» para agir como a página`);
@@ -270,14 +319,18 @@ async function prepararRede(redeId, midia, texto, opcoes) {
           // naAba reinjeta os ajudantes e tolera contextos trocados na navegação.
           const avisos = await naAba('facebookBanner');
           if (Array.isArray(avisos) && !avisos.length
-              && (await naAba('existe', R.abrir.esperar) || await naAba('existe', R.abrir.clicar))) {
+              && (await naAba('facebookConta', nome))?.ok) {
             pronta = true;
             break;
           }
         }
         if (!pronta) throw new EtapaFalhou(`não consegui trocar para a Página ${nome}`);
-        log('✓ troca para a Página concluída; banner ausente e compositor disponível', 'ok');
-      }
+        log('troca de perfil: feita; avatar da Página confirmado', 'ok');
+      } else log('troca de perfil: verificando se já estava na Página');
+      const conta = await naAba('facebookConta', nome);
+      if (!conta?.ok) throw new EtapaFalhou(`não foi possível confirmar o avatar da Página ${nome}; compositor bloqueado`);
+      log('troca de perfil: ' + (s?.ok || banner?.length ? 'feita' : 'já estava na Página') + '; avatar confirmado', 'ok');
+      vigiarNavegacao = true;
     }
     // ── 1. abrir o compositor (só onde ele é um modal) ────────────────────
     etapa('abrir compositor');
@@ -588,6 +641,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
   } finally {
     etapa('');
     if (redeId === 'facebook') log(`tempo · total do motor: ${((Date.now() - inicioRede) / 1000).toFixed(2)}s`);
+    if (R.perfil) chrome.tabs.onUpdated.removeListener(aoNavegar);
     chrome.debugger.onDetach && chrome.debugger.onDetach.removeListener(aoSoltar);
     try { await chrome.debugger.detach(alvo); } catch (e) { /* já soltou */ }
   }

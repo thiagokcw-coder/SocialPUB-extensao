@@ -197,6 +197,16 @@ senha.
 
 ## Testes
 
+**0.8.21 — Facebook sempre como Uncensored Brasil:** o motor abre
+`https://www.facebook.com/uncensoredbrasil`, independentemente do destino da
+persona. Antes, fecha a aba anterior do motor e abas do Facebook com compositor
+aberto (descarta rascunhos sem publicar). Exige o nome da Página no avatar do
+controle de conta do cabeçalho antes de abrir o compositor e nas conferências
+anteriores à publicação; avatar sem identificação acessível também bloqueia.
+Registra limpeza e troca de perfil. Carregamento, leituras e comandos de
+depuração têm prazo; navegação após confirmar a identidade interrompe com erro
+explícito e exige reiniciar pela Página, sem repetir publicação automaticamente.
+
 **0.8.20 — prévia na transição do reel:** a medição real mostrou que o primeiro
 Avançar funcionava e o motor parava por ausência de mídia em “Editar reel”,
 apesar da prévia reproduzir. Agora espera até 5s pela prévia intermediária;

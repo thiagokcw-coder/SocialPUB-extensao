@@ -14,7 +14,7 @@ async def main():
         for mode in ('video', 'texto', 'sem_midia', 'perde_midia', 'outro_autor', 'troca_dialogo', 'legenda_perdida', 'publicar', 'troca_antes_publicar', 'reel_direto', 'reel_publicar', 'reel_processando', 'reel_final', 'reel_retry', 'reel_travado', 'previa_intermediaria', 'previa_atrasada', 'previa_fora'):
             await page.set_content('<div role="dialog" id="fluxo"></div>')
             result = await page.evaluate("""async mode => {
-              const caption = 'Legenda de teste', name = 'Página Exemplo';
+              const caption = 'Legenda de teste', name = 'Uncensored Brasil';
               const video = mode !== 'texto';
               const direto = mode.startsWith('reel_');
               let stage = 0, target = null, clicks = 0, advances = 0, logs = [];
@@ -37,6 +37,10 @@ async def main():
               window.setTimeout = (cb, ms) => { clock += ms || 1; queueMicrotask(cb); return 0; };
               window.chrome = {debugger:{attach:async()=>{},detach:async()=>{},sendCommand:async()=>{},onDetach:{addListener(){},removeListener(){}}}};
               _motorAbrirAba = async()=>1;
+              _motorLimparFacebook = async()=>{};
+              _motorPrazo = p => p;
+              chrome.storage = {session:{set:async()=>{}}};
+              chrome.tabs = {onUpdated:{addListener(){},removeListener(){}}};
               window.spLimparCampo = async()=> {};
               window.spEscreverTeclas = async()=> {
                 if (direto && stage !== 2) throw new Error('escreveu antes da descrição');
@@ -58,6 +62,7 @@ async def main():
               };
               let finalReads = 0, previewReads = 0;
               _motorNaAba = async(id, method, args)=> {
+                if (method === 'facebookConta') return {ok:true,nomes:[name]};
                 if (method === 'facebookEstado' && stage === 1 && mode === 'previa_atrasada' && ++previewReads === 5) root.insertAdjacentHTML('beforeend','<video style="width:200px;height:200px"></video>');
                 if (method === 'facebookEstado' && stage > 0 && mode === 'previa_fora' && !document.getElementById('feedvideo')) root.insertAdjacentHTML('afterend','<video id="feedvideo" style="width:200px;height:200px"></video>');
                 if (method === 'facebookComo' && stage === 1 && video) throw new Error('checagem de autor indevida em Editar reel');

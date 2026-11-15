@@ -8,7 +8,7 @@ from pathlib import Path
 from playwright.async_api import async_playwright
 
 ROOT = Path(__file__).resolve().parent.parent
-PAGE = 'Página Exemplo'
+PAGE = 'Uncensored Brasil'
 OTHER = 'Perfil Pessoal'
 EDITOR = '<div role="textbox" contenteditable="true" style="min-height:40px">Legenda</div>'
 
@@ -103,8 +103,13 @@ async def main():
                 onDetach: {addListener() {}, removeListener() {}}
               }};
               _motorAbrirAba = async url => { opened.push(url); return 1; };
+              _motorLimparFacebook = async()=>{};
+              _motorPrazo = p => p;
+              chrome.storage = {session:{set:async()=>{}}};
+              chrome.tabs = {onUpdated:{addListener(){},removeListener(){}}};
               window.spClicarEm = async () => { if (publishing) publishClicks++; };
               _motorNaAba = async (id, method, args) => {
+                if (method === 'facebookConta') return {ok:true};
                 if (method === 'facebookComo') {
                   if (++reads === stage) document.getElementById('autor').textContent = other;
                   return SP.facebookComo(args[0]);
@@ -130,7 +135,7 @@ async def main():
             }""", [PAGE, OTHER, stage])
             assert result['result']['erro'] == f'Facebook não está como a página {PAGE}', result
             assert result['publishClicks'] == 0 and result['reads'] == stage, result
-            assert result['opened'] == ['https://www.facebook.com/pagina.exemplo'], result
+            assert result['opened'] == ['https://www.facebook.com/uncensoredbrasil'], result
             assert any('autores encontrados' in s and OTHER in s for s in result['logs']), result
             assert any('tempo · checagem do autor:' in s for s in result['logs']), result
             assert any('tempo · total do motor:' in s for s in result['logs']), result

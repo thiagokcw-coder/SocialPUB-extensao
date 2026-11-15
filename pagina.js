@@ -142,6 +142,27 @@
 
     /** Autor do compositor: rótulo explícito, pergunta do editor ou cabeçalho
      * antes dele. Nunca usa a legenda, o feed ou outro diálogo como prova. */
+    facebookCompositorAberto() {
+      return Array.from(document.querySelectorAll('[role="dialog"]')).some(d => visivel(d)
+        && /(?:Criar post|Criar publicação|Editar reel|Criar reel|Configurações do (?:post|reel)|Create post|Edit reel|Create reel|Reel settings|Post settings)/i.test(d.innerText));
+    },
+
+    facebookConta(nome) {
+      // Apenas o controle de conta no cabeçalho; nome da Página no feed não prova identidade.
+      const nomes = [];
+      for (const b of document.querySelectorAll('[role="banner"] [role="button"], [role="banner"] button')) {
+        if (!visivel(b) || !/^(?:Conta|Account|Seu perfil|Your profile|O teu perfil)(?:[, :]|$)/i.test(b.getAttribute('aria-label') || '')) continue;
+        for (const img of b.querySelectorAll('img, [role="img"], svg image')) {
+          for (const attr of ['alt', 'aria-label']) {
+            const valor = norm(img.getAttribute(attr));
+            if (valor) nomes.push(valor.replace(/^(?:Foto d[oe] perfil de|Imagem d[oe] perfil de|Profile picture of|Profile photo of)\s+/i, ''));
+          }
+        }
+      }
+      const unicos = [...new Set(nomes.map(n => n.toLocaleLowerCase()))];
+      return { ok: unicos.length === 1 && unicos[0] === norm(nome).toLocaleLowerCase(), nomes };
+    },
+
     facebookComo(nome) {
       const nomes = [];
       const ui = /^(?:Público|Public|Amigos|Friends|Somente eu|Only me|Personalizado|Custom|Rótulo de IA (?:desativado|ativado)|AI label (?:off|on))$/i;
