@@ -18,6 +18,15 @@ const SP_COOKIES = {
   facebook:  { dominios: ['facebook.com'], chaves: ['c_user', 'xs'] },
 };
 
+/** Onde «Abrir conta» abre cada rede — e onde a publicação começa (16/11:
+ * publicar abre a conta do MESMO jeito que o botão, e só então vai para a
+ * tela de criar). O Facebook usa o link da Página da persona. */
+const SP_URL_CONTA = {
+  x: 'https://x.com/', instagram: 'https://www.instagram.com/',
+  tiktok: 'https://www.tiktok.com/', threads: 'https://www.threads.com/',
+  facebook: 'https://www.facebook.com/uncensoredbrasil',
+};
+
 /** O cookie que diz QUAL conta está logada (o número do usuário). */
 const SP_ID_CONTA = { x: 'twid', instagram: 'ds_user_id', tiktok: 'uid_tt', threads: 'ds_user_id', facebook: 'c_user' };
 

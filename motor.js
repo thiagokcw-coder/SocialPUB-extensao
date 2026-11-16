@@ -29,6 +29,27 @@ async function _motorAbrirAba(url) {
   throw new Error('carregamento da aba não terminou em 45s; verifique avisos de navegação');
 }
 
+/** Abre a CONTA como o botão «Abrir conta» (urlConta) e, se a tela de criar
+ * tiver outro endereço, vai para ela na MESMA aba. Sem urlConta, abre direto. */
+async function _motorAbrirConta(urlConta, url, log) {
+  if (!urlConta || urlConta === url) return _motorAbrirAba(url);
+  log(`abrindo a conta em ${urlConta} (como «Abrir conta») …`);
+  const tabId = await _motorAbrirAba(urlConta);
+  log(`conta aberta; indo para a tela de criar: ${url}`);
+  await _motorPrazo(chrome.tabs.update(tabId, { url }), 'ir para a tela de criar');
+  // Espera a navegação COMEÇAR (a aba ainda está «complete» da conta) e terminar.
+  const fim = Date.now() + 45000;
+  let saiu = false;
+  while (Date.now() < fim) {
+    const t = await _motorPrazo(chrome.tabs.get(tabId), 'consultar aba');
+    if (t.status === 'loading' || (t.url && t.url !== urlConta)) saiu = true;
+    if (saiu && t.status === 'complete') return tabId;
+    if (!saiu && Date.now() > fim - 40000) saiu = true;   // 5s sem sinal: segue pelo status
+    await new Promise(r => setTimeout(r, 250));
+  }
+  throw new Error('a tela de criar não terminou de carregar em 45s');
+}
+
 async function _motorLimparFacebook(log) {
   log('limpeza: procurando abas com Criar post / Editar reel de execuções anteriores');
   const abas = await _motorPrazo(chrome.tabs.query({ url: ['https://*.facebook.com/*', 'https://facebook.com/*'] }), 'listar abas do Facebook');
@@ -146,7 +167,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
   let tabId;
   try {
     if (R.perfil) await _motorLimparFacebook(log);
-    tabId = await _motorAbrirAba(url);
+    tabId = await _motorAbrirConta(opcoes.urlConta, url, log);
     if (R.perfil) await _motorPrazo(chrome.storage.session.set({ facebookAbaMotor: tabId }), 'registrar aba limpa');
     await _motorPrazo(chrome.debugger.attach({ tabId }, '1.3'), 'conectar depuração');
     log('aba limpa carregada; depuração conectada');

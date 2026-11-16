@@ -217,6 +217,13 @@ senha.
 
 ## Testes
 
+**0.8.33 — publicar abre cada conta como «Abrir conta»:** a publicação aplica a
+sessão salva e abre a conta no MESMO endereço do botão «Abrir conta»
+(`SP_URL_CONTA`: `x.com/`, `instagram.com/`, `tiktok.com/`, `threads.com/`,
+link da Página no Facebook). Onde a tela de criar tem outro endereço (X
+`/compose/post`, TikTok Studio), segue para ela na mesma aba depois que a conta
+carregou. `node tests/test_abrir_conta_motor.js`.
+
 **0.8.32 — Facebook: troca de tela lenta depois de Avançar:** no navegador do
 Grok (16/11) o diálogo passou alguns segundos sem título nem autor entre
 «Criar post» e a tela do reel, e o fluxo parava com «Facebook não está como a

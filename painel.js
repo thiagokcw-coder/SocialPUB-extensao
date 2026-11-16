@@ -235,12 +235,7 @@ $('contas').addEventListener('click', async ev => {
           res.textContent = `Não abri a conta: ${r.gravados} cookie(s) aplicado(s), ${r.recusados.length} recusado(s). Importe a sessão novamente.`;
           return;
         }
-        const urls = {
-          x: 'https://x.com/', instagram: 'https://www.instagram.com/',
-          tiktok: 'https://www.tiktok.com/', threads: 'https://www.threads.com/',
-          facebook: 'https://www.facebook.com/uncensoredbrasil',
-        };
-        await chrome.tabs.create({ url: urls[rede], active: true });
+        await chrome.tabs.create({ url: SP_URL_CONTA[rede], active: true });
         res.textContent = `Conta de «${p.nome}» aberta com a sessão salva. Se a rede pedir login, renove a sessão.`;
       } finally { botao.disabled = false; }
       return;
@@ -531,7 +526,7 @@ $('ir').addEventListener('click', async () => {
           + (e.recusados.length ? ` · ${e.recusados.length} recusado(s) que não autenticam` : ''), e.recusados.length ? 'am' : 'ok');
       const r = await prepararRede(id, midia, texto,
         { publicar, colaboradores: id === 'instagram' ? colaboradores : [], facebookPagina: p.facebook_pagina || '',
-          facebookPaginaUrl: p.facebook_pagina_url || '', log });
+          facebookPaginaUrl: p.facebook_pagina_url || '', urlConta: SP_URL_CONTA[id], log });
       resultados.push(r);
       // A guardada não valeu (a rede pediu senha): devolve a sessão que estava
       // no navegador, para não deixar a pessoa deslogada por causa da troca.
