@@ -217,6 +217,11 @@ senha.
 
 ## Testes
 
+**0.8.29 — recusar a oferta que o Facebook abre depois de Postar:** depois do
+clique em «Postar» apareceu «Fale diretamente com as pessoas» (botão «Ligar
+agora») e a publicação ficou parada. A extensão responde «Agora não» (nunca
+«Adicionar botão»), até 3 vezes, e volta a esperar a confirmação.
+
 **0.8.28 — prévia do reel aceita na tela final do Facebook:** em «Configurações
 do reel» o vídeo tocava e mesmo assim parava em «a mídia não apareceu no
 post»: o navegador dava o `<video>` como invisível. Agora conta o vídeo

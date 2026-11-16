@@ -204,6 +204,11 @@ const RECEITAS = {
     legenda: ['[role="dialog"] [role="textbox"][contenteditable="true"]', '[role="dialog"] [role="textbox"]', '[role="dialog"] textarea'],
     descricao_reel: ['Descreva seu reel', 'Descreva o teu reel', 'Describe your reel', 'Escreva uma descrição', 'Write a description'].flatMap(t => [
       `[role="dialog"] [aria-label^="${t}"]`, `[role="dialog"] textarea[placeholder^="${t}"]`, `[role="dialog"] [contenteditable="true"][data-placeholder^="${t}"]`]),
+    // Ofertas que o Facebook abre DEPOIS de «Postar» e seguram a publicação
+    // (16/11: «Fale diretamente com as pessoas» — botão «Ligar agora», com
+    // «Agora não» · «Adicionar botão»). Só a recusa; nunca aceitar a oferta.
+    recusar_depois: ['Agora não', 'Not now', 'Agora não, obrigado', 'Ignorar', 'Skip']
+      .map(t => ({ css: '[role="dialog"] [role="button"], [role="dialog"] button', texto: t })),
     publicar: ['Publicar', 'Post', 'Postar', 'Publish', 'Compartilhar agora', 'Share now'].flatMap(t => [
       `[role="dialog"] [role="button"][aria-label="${t}"]`,
       { css: '[role="dialog"] [role="button"], [role="dialog"] button', texto: t }]),

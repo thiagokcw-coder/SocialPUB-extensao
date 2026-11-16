@@ -609,8 +609,18 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     // também casa a receita — e a leva dizia "continua na tela" de um post que
     // tinha saído (13/11). É o `sel` que o app sempre usou.
     if (R.fluxo_facebook) {
-      const limite = Date.now() + 30000;
+      let limite = Date.now() + 30000, recusas = 0;
       do {
+        // Oferta por cima («Fale diretamente com as pessoas»): «Agora não» e
+        // o prazo recomeça — enquanto ela estiver aberta o post não sai.
+        if (R.recusar_depois && recusas < 3 && await naAba('existe', R.recusar_depois)) {
+          const o = await clicar(R.recusar_depois, 1000, 'recusar oferta do Facebook');
+          recusas++;
+          log(`o Facebook abriu uma oferta depois de Postar — respondi «${o.texto || 'Agora não'}»`, 'am');
+          limite = Date.now() + 30000;
+          await new Promise(r => setTimeout(r, 800));
+          continue;
+        }
         const resultado = await naAba('facebookResultado');
         if (resultado) {
           res.publicou = !!resultado.publicado;

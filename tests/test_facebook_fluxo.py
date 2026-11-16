@@ -11,13 +11,13 @@ async def main():
         page = await browser.new_page()
         for script in ('pagina.js', 'receitas.js', 'personas.js', 'motor.js', 'teclado.js'):
             await page.add_script_tag(content=(ROOT / script).read_text(encoding='utf-8'))
-        for mode in ('video', 'texto', 'sem_midia', 'perde_midia', 'outro_autor', 'troca_dialogo', 'legenda_perdida', 'publicar', 'troca_antes_publicar', 'reel_direto', 'reel_publicar', 'reel_processando', 'reel_final', 'reel_retry', 'reel_travado', 'previa_intermediaria', 'previa_atrasada', 'previa_fora'):
+        for mode in ('video', 'texto', 'sem_midia', 'perde_midia', 'outro_autor', 'troca_dialogo', 'legenda_perdida', 'publicar', 'troca_antes_publicar', 'reel_direto', 'reel_publicar', 'reel_processando', 'reel_oferta', 'reel_final', 'reel_retry', 'reel_travado', 'previa_intermediaria', 'previa_atrasada', 'previa_fora'):
             await page.set_content('<div role="dialog" id="fluxo"></div>')
             result = await page.evaluate("""async mode => {
               const caption = 'Legenda de teste', name = 'Uncensored Brasil';
               const video = mode !== 'texto';
               const direto = mode.startsWith('reel_');
-              let stage = 0, target = null, clicks = 0, advances = 0, logs = [];
+              let stage = 0, target = null, clicks = 0, advances = 0, recusou = 0, logs = [];
               const root = document.getElementById('fluxo');
               const render = () => {
                 const heading = stage === 0 ? 'Criar post' : stage === 1 && video ? 'Editar reel' : video ? 'Configurações do reel' : 'Configurações do post';
@@ -54,9 +54,11 @@ async def main():
                   stage++; render();
                   if (mode === 'troca_dialogo') root.replaceWith(root.cloneNode(true));
                 }
+                if (target === RECEITAS.facebook.recusar_depois) { recusou++; document.getElementById('oferta').remove(); root.remove(); }
                 if (target === RECEITAS.facebook.publicar) {
                   clicks++;
                   if (mode === 'reel_processando') root.insertAdjacentHTML('afterend','<div role="status">Seu reel está sendo processado</div>');
+                  else if (mode === 'reel_oferta') root.insertAdjacentHTML('afterend','<div role="dialog" id="oferta"><h2>Fale diretamente com as pessoas</h2><div role="button">Agora não</div><div role="button">Adicionar botão</div></div>');
                   else root.remove();
                 }
               };
@@ -88,18 +90,21 @@ async def main():
               try {
                 const result = await prepararRede('facebook', video ? {tipo:'video/mp4',nome:'teste.mp4',b64:''} : null, caption, {
                   facebookPagina:name, facebookPaginaUrl:'https://www.facebook.com/pagina.exemplo',
-                  publicar:['publicar','troca_antes_publicar','reel_publicar','reel_processando','previa_fora'].includes(mode), log:s=>logs.push(s)
+                  publicar:['publicar','troca_antes_publicar','reel_publicar','reel_processando','reel_oferta','previa_fora'].includes(mode), log:s=>logs.push(s)
                 });
-                return {result,clicks,advances,logs};
+                return {result,clicks,advances,recusou,logs};
               } finally {window.setTimeout = timeout; Date.now = now;}
             }""", mode)
-            if mode in ('video', 'texto', 'publicar', 'reel_direto', 'reel_publicar', 'reel_processando', 'reel_final', 'reel_retry', 'previa_intermediaria', 'previa_atrasada'):
+            if mode in ('video', 'texto', 'publicar', 'reel_direto', 'reel_publicar', 'reel_processando', 'reel_oferta', 'reel_final', 'reel_retry', 'previa_intermediaria', 'previa_atrasada'):
                 assert 'erro' not in result['result'], (mode, result)
                 assert result['result']['legendaOk'], (mode, result)
                 assert result['advances'] == (2 if mode == 'reel_retry' else 0 if mode == 'reel_final' else 1 if mode == 'texto' or mode.startswith('reel_') else 2), (mode, result)
             else:
                 assert result['result'].get('erro') or result['result'].get('legendaOk') is False, (mode, result)
-            assert result['clicks'] == (1 if mode in ('publicar','reel_publicar','reel_processando') else 0), (mode, result)
+            assert result['clicks'] == (1 if mode in ('publicar','reel_publicar','reel_processando','reel_oferta') else 0), (mode, result)
+            if mode == 'reel_oferta':
+                assert result['recusou'] == 1 and result['result']['publicou'], result
+                assert any('respondi «Agora não»' in s for s in result['logs']), result
             if mode in ('publicar','reel_publicar'):
                 assert result['result']['publicou'], result
             if mode == 'reel_processando':
@@ -155,6 +160,6 @@ async def main():
             }''', controle)
             assert state['etapa'] == 'final_reel' and state['midia'] == esperado, state
         await browser.close()
-    print('OK: 18 cenários Facebook; prévia atrasada/intermediária, mídia externa bloqueada e guardas de publicação')
+    print('OK: 19 cenários Facebook; prévia atrasada/intermediária, mídia externa bloqueada e guardas de publicação')
 
 asyncio.run(main())
