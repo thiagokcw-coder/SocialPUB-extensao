@@ -217,6 +217,14 @@ senha.
 
 ## Testes
 
+**0.8.31 — aba oculta no navegador do Grok:** o diagnóstico da 0.8.30 mostrou o
+diálogo do X «inexistente» mesmo depois do clique em «Post» e a tela de legenda
+do Instagram sem terminar de abrir — sinais de aba tratada como oculta, com as
+animações congeladas. Ao conectar, a extensão traz a aba para a frente
+(`Page.bringToFront`) e emula foco; o relatório mostra «aba: visible/hidden ·
+foco». Só com a aba oculta, a opacidade deixa de contar para «visível». O
+Instagram em inglês ganhou «Add a caption...». `python tests/test_aba_oculta.py`.
+
 **0.8.30 — navegador do Grok (inglês, Linux):** pelo diagnóstico de 16/11, o
 Instagram travava 60 s numa leitura porque o `requestAnimationFrame` não
 dispara em aba que o navegador dá como oculta — agora a espera tem limite de

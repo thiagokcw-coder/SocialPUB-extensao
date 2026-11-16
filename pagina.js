@@ -13,7 +13,7 @@
 // a armadilha do «Criar» (textContent "Novo postCriar", tela só "Criar") e a do
 // «Original» (rótulo num <span> dentro do botão — o innerText do botão é o mesmo).
 (() => {
-  const VERSAO = 15;
+  const VERSAO = 16;
   if (self.SP && self.SP.versao === VERSAO) return;
 
   const INVIS = /[​‌‍﻿⁠]/g;
@@ -23,7 +23,11 @@
 
   function visivel(el) {
     if (!el || !el.isConnected) return false;
-    if (el.checkVisibility && !el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) return false;
+    // Aba oculta: as animações de entrada ficam congeladas em opacidade 0
+    // (diálogo do X no navegador do Grok, 16/11). Só nesse caso a
+    // transparência não conta; display/visibility continuam valendo.
+    const checkOpacity = document.visibilityState !== 'hidden';
+    if (el.checkVisibility && !el.checkVisibility({ checkOpacity, checkVisibilityCSS: true })) return false;
     const r = el.getBoundingClientRect();
     return r.width > 0 && r.height > 0;
   }
@@ -109,6 +113,10 @@
     existe(cands) { return !!achar(cands, true); },
 
     onde() { return location.origin + location.pathname; },
+
+    estadoAba() {
+      return { visibilidade: document.visibilityState, foco: document.hasFocus(), janela: innerWidth + 'x' + innerHeight };
+    },
 
     async campoArquivo(cands, prazoMs) {
       const a = await esperarAchar(cands, prazoMs, false);
@@ -379,6 +387,8 @@
         titulo: document.title.slice(0, 80),
         idioma: document.documentElement.lang || navigator.language,
         janela: innerWidth + 'x' + innerHeight,
+        visibilidade: document.visibilityState,
+        foco: document.hasFocus(),
         parece_login: /\/(accounts\/login|login|signin|challenge|checkpoint|suspended)/i.test(location.pathname)
           || !!document.querySelector('input[type="password"]'),
         dialogos,

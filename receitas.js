@@ -88,10 +88,10 @@ const RECEITAS = {
         esperar: ['[role="dialog"][aria-label="Editar"]', '[role="dialog"][aria-label="Edit"]'] },
       { id: 'editar', clicar: ['Avançar', 'Seguinte', 'Next'].map(t => ({ css: '[role="dialog"] *', texto: t })),
         esperar: ['div[aria-label="Adicione uma legenda..."]', 'div[aria-label="Escreve uma legenda..."]',
-                  'div[aria-label="Write a caption..."]', '[role="dialog"] div[role="textbox"][contenteditable="true"]'] },
+                  'div[aria-label="Write a caption..."]', 'div[aria-label="Add a caption..."]', '[role="dialog"] div[role="textbox"][contenteditable="true"]'] },
     ],
     legenda: ['div[aria-label="Adicione uma legenda..."]', 'div[aria-label="Escreve uma legenda..."]',
-              'div[aria-label="Write a caption..."]', '[role="dialog"] div[role="textbox"][contenteditable="true"]',
+              'div[aria-label="Write a caption..."]', 'div[aria-label="Add a caption..."]', '[role="dialog"] div[role="textbox"][contenteditable="true"]',
               '[role="dialog"] div[role="textbox"]'],
     // Convite de collab. O CAMPO é medido (09/11) e o `name` não depende de
     // idioma; a LISTA de sugestões não foi medida — o @ é casado por texto

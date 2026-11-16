@@ -298,6 +298,18 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     return n;
   }
 
+  // Navegador do Grok (16/11): a aba se comportava como OCULTA — animações
+  // congeladas (o diálogo do X ficava transparente, a tela de legenda do
+  // Instagram não terminava de abrir). Traz a aba para a frente e emula foco.
+  // No Chrome em que ela já está na frente, isto não muda nada.
+  for (const [m, p] of [['Page.bringToFront', {}], ['Emulation.setFocusEmulationEnabled', { enabled: true }]]) {
+    try { await cmd(m, p); } catch (e) { log(`(${m} indisponível: ${String(e && e.message || e).slice(0, 80)})`); }
+  }
+  try {
+    const ea = await naAba('estadoAba');
+    if (ea) log(`aba: ${ea.visibilidade}${ea.foco ? ' · com foco' : ' · sem foco'} · janela ${ea.janela}`, ea.visibilidade === 'visible' ? '' : 'am');
+  } catch (e) { /* só diagnóstico */ }
+
   try {
     etapa('trocar para a Página');
     if (R.perfil) {
@@ -657,7 +669,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
       const d = await naAba('medir');
       if (d) {
         out.diagnostico = Object.assign({ rede: redeId, quando: new Date().toISOString(), erro: out.erro }, d);
-        log(`   tela: ${d.url} · idioma ${d.idioma} · janela ${d.janela} · ${d.dialogos.length} diálogo(s) · ${d.clicaveis.length} clicável(is)`
+        log(`   tela: ${d.url} · idioma ${d.idioma} · janela ${d.janela}${d.visibilidade ? ' · aba ' + d.visibilidade + (d.foco ? '/foco' : '/sem foco') : ''} · ${d.dialogos.length} diálogo(s) · ${d.clicaveis.length} clicável(is)`
             + (d.parece_login ? ' · ⚠ PARECE TELA DE LOGIN — a sessão não valeu' : ''), d.parece_login ? 'er' : 'am');
       }
     } catch (e2) { /* a aba pode ter fechado; o erro acima já diz o que houve */ }
