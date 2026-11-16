@@ -18,6 +18,16 @@ const SP_COOKIES = {
   facebook:  { dominios: ['facebook.com'], chaves: ['c_user', 'xs'] },
 };
 
+/** O cookie que diz QUAL conta está logada (o número do usuário). */
+const SP_ID_CONTA = { x: 'twid', instagram: 'ds_user_id', tiktok: 'uid_tt', threads: 'ds_user_id', facebook: 'c_user' };
+
+/** O usuário de uma lista de cookies, ou '' se não houver. */
+function spIdConta(rede, cookies) {
+  const nome = SP_ID_CONTA[rede];
+  const c = nome && (cookies || []).find(k => k && k.name === nome && k.value);
+  return c ? String(c.value).replace(/^"|"$/g, '') : '';
+}
+
 function _spDoDominio(dominioCookie, dominios) {
   const d = String(dominioCookie || '').replace(/^\./, '').toLowerCase();
   return dominios.some(x => d === x || d.endsWith('.' + x));
@@ -164,6 +174,19 @@ function spParaChrome(c, rede) {
  * Um cookie recusado não leva os outros junto: é gravado um a um e NOMEADO. */
 async function spEntrar(rede, cookies) {
   const cfg = SP_COOKIES[rede];
+  // 16/11: o Facebook abriu a Página DESLOGADO com o navegador logado. A
+  // sessão salva estava velha (o Facebook renova o `xs`) e sobrescreveu a
+  // que valia. Se o navegador JÁ está na MESMA conta, com os cookies que
+  // autenticam, não mexe: a sessão viva é a mais nova.
+  const id = spIdConta(rede, cookies);
+  if (id) {
+    const atuais = [];
+    for (const dom of cfg.dominios) atuais.push(...await chrome.cookies.getAll({ domain: dom }));
+    const nomes = new Set(atuais.filter(c => c.value).map(c => c.name));
+    if (spIdConta(rede, atuais) === id && cfg.chaves.every(k => nomes.has(k))) {
+      return { apagados: 0, gravados: 0, recusados: [], entrou: true, mantida: true };
+    }
+  }
   const recusados = [];
   const novos = new Set();
   let gravados = 0;

@@ -520,7 +520,14 @@ $('ir').addEventListener('click', async () => {
         resultados.push({ rede: id, semSessao: true });
         continue;
       }
-      log(`[${RECEITAS[id].nome}] sessão de ${conta.usuario ? '@' + conta.usuario : p.nome} no navegador (${e.gravados} cookie(s))`
+      if (e.mantida) {
+        try {
+          conta.cookies = (await spCapturarSessao(id)).cookies;
+          conta.salvo_em = new Date().toLocaleString('pt-BR');
+          await salvar();
+        } catch (_) { /* fica a guardada; a viva continua no navegador */ }
+        log(`[${RECEITAS[id].nome}] o navegador já está na conta de ${conta.usuario ? '@' + conta.usuario : p.nome} — mantive a sessão aberta (e atualizei a guardada)`, 'ok');
+      } else log(`[${RECEITAS[id].nome}] sessão de ${conta.usuario ? '@' + conta.usuario : p.nome} no navegador (${e.gravados} cookie(s))`
           + (e.recusados.length ? ` · ${e.recusados.length} recusado(s) que não autenticam` : ''), e.recusados.length ? 'am' : 'ok');
       resultados.push(await prepararRede(id, midia, texto,
         { publicar, colaboradores: id === 'instagram' ? colaboradores : [], facebookPagina: p.facebook_pagina || '',

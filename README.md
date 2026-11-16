@@ -217,6 +217,13 @@ senha.
 
 ## Testes
 
+**0.8.25 — não deslogar o Facebook com sessão velha:** se o navegador já está
+na MESMA conta da persona (mesmo `c_user`/`ds_user_id`/`twid`/`uid_tt`, com os
+cookies que autenticam), a extensão mantém a sessão aberta em vez de gravar a
+guardada por cima — e atualiza a guardada com a viva. Se a Página ainda abrir
+pedindo e-mail e senha, o Facebook para com essa causa. `node
+tests/test_sessao_mantida.js` cobre os três casos.
+
 **0.8.24 — contas com interface simplificada:** uma ação principal, **Abrir
 conta**, aplica a sessão salva e abre a rede. Cadastro, renovação, cookies e
 remoção ficam recolhidos em **Gerenciar conta** (ou **Adicionar conta**).

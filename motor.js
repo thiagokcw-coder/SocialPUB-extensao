@@ -303,6 +303,11 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     if (R.perfil) {
       const nome = String(opcoes.facebookPagina || '').trim();
       if (!nome) throw new EtapaFalhou('Facebook não está como a página (configure a página na persona)');
+      // Página aberta DESLOGADA (16/11: «Vê mais conteúdos de…» com e-mail e
+      // palavra-passe): parar com a causa em vez de procurar a troca de perfil.
+      if (await naAba('existe', ['input[type="password"]', 'input[name="pass"]'])) {
+        throw new EtapaFalhou('o Facebook abriu a Página DESLOGADO (pediu e-mail e senha) — a sessão guardada não vale mais: em «Contas da persona», use «Entrar pela tela» e «Salvar sessão atual»');
+      }
       // A URL da página pode abrir ainda como perfil pessoal. Só procurar o
       // compositor depois de a troca terminar; não repetir clique na recarga.
       const s = await naAba('localizar', R.perfil.alternar, 8000);
