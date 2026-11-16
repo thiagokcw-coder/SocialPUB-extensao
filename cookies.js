@@ -24,17 +24,34 @@ const SP_COOKIES = {
 const SP_URL_CONTA = {
   x: 'https://x.com/', instagram: 'https://www.instagram.com/',
   tiktok: 'https://www.tiktok.com/', threads: 'https://www.threads.com/',
-  facebook: 'https://www.facebook.com/uncensoredbrasil',
+  facebook: 'https://www.facebook.com/',
 };
+
+/** Endereço da conta desta persona. Facebook: o link da Página DA PERSONA
+ * (16/11: estava fixo em /uncensoredbrasil e «Abrir conta» de outra persona
+ * caía na Página errada); sem link válido, a página inicial. */
+function spUrlConta(rede, persona) {
+  if (rede === 'facebook' && persona && persona.facebook_pagina_url) {
+    try { return spUrlPaginaFacebook(persona.facebook_pagina_url); } catch (_) { /* link inválido: página inicial */ }
+  }
+  return SP_URL_CONTA[rede];
+}
 
 /** O cookie que diz QUAL conta está logada (o número do usuário). */
 const SP_ID_CONTA = { x: 'twid', instagram: 'ds_user_id', tiktok: 'uid_tt', threads: 'ds_user_id', facebook: 'c_user' };
 
-/** O usuário de uma lista de cookies, ou '' se não houver. */
+/** O usuário de uma lista de cookies, ou '' se não houver. No Facebook a
+ * identidade é o perfil (`c_user`) E a Página em uso (`i_user`): duas personas
+ * com o mesmo login pessoal e Páginas diferentes NÃO são a mesma conta (16/11:
+ * «Abrir conta» de outra persona manteve a Página antiga). */
 function spIdConta(rede, cookies) {
-  const nome = SP_ID_CONTA[rede];
-  const c = nome && (cookies || []).find(k => k && k.name === nome && k.value);
-  return c ? String(c.value).replace(/^"|"$/g, '') : '';
+  const valor = n => {
+    const c = n && (cookies || []).find(k => k && k.name === n && k.value);
+    return c ? String(c.value).replace(/^"|"$/g, '') : '';
+  };
+  const id = valor(SP_ID_CONTA[rede]);
+  if (rede === 'facebook' && id) return id + '|' + valor('i_user');
+  return id;
 }
 
 function _spDoDominio(dominioCookie, dominios) {

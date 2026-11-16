@@ -38,8 +38,9 @@ async def main():
         assert await page.evaluate('document.documentElement.scrollWidth <= innerWidth')
         await page.set_viewport_size({'width':1280,'height':900})
         await page.evaluate("PERSONAS.p.contas.instagram.cookies=[{name:'fake',value:'instagram'}]; desenharContas()")
+        await page.evaluate("PERSONAS.p.facebook_pagina_url='https://www.facebook.com/outrapagina'")
         urls = {'x':'https://x.com/', 'instagram':'https://www.instagram.com/', 'tiktok':'https://www.tiktok.com/',
-                'threads':'https://www.threads.com/', 'facebook':'https://www.facebook.com/uncensoredbrasil'}
+                'threads':'https://www.threads.com/', 'facebook':'https://www.facebook.com/outrapagina'}
         for rede,url in urls.items():
             await page.evaluate('events=[]')
             button=page.locator(f'.conta[data-rede="{rede}"] .abrir-conta')

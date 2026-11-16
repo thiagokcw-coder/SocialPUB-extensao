@@ -217,6 +217,13 @@ senha.
 
 ## Testes
 
+**0.8.34 — «Abrir conta» de outra persona troca de verdade:** no Facebook, a
+identidade agora é o perfil (`c_user`) **e** a Página em uso (`i_user`); duas
+personas com o mesmo login pessoal e Páginas diferentes não são mais tratadas
+como «a mesma conta» (a sessão antiga era mantida). E «Abrir conta» do
+Facebook abre o link da Página **da persona** (estava fixo em
+`/uncensoredbrasil`); sem link, a página inicial.
+
 **0.8.33 — publicar abre cada conta como «Abrir conta»:** a publicação aplica a
 sessão salva e abre a conta no MESMO endereço do botão «Abrir conta»
 (`SP_URL_CONTA`: `x.com/`, `instagram.com/`, `tiktok.com/`, `threads.com/`,

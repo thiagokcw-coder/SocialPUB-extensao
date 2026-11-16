@@ -34,10 +34,21 @@ vm.runInThisContext(fs.readFileSync(path.join(__dirname, '..', 'cookies.js'), 'u
   jar = [{ domain: '.facebook.com', name: 'c_user', value: '123', path: '/' }];
   r = await spEntrar('facebook', salva);
   assert.ok(r.entrou && !r.mantida && sets === 2);
+  // Mesmo login pessoal (c_user), Página diferente (i_user): NÃO é a mesma conta.
+  sets = 0;
+  jar = [{ domain: '.facebook.com', name: 'c_user', value: '123', path: '/' }, { domain: '.facebook.com', name: 'xs', value: 'viva', path: '/' },
+         { domain: '.facebook.com', name: 'i_user', value: 'paginaA', path: '/' }];
+  r = await spEntrar('facebook', [...salva, { domain: '.facebook.com', name: 'i_user', value: 'paginaB' }]);
+  assert.ok(r.entrou && !r.mantida && sets === 3);
+  assert.equal(jar.find(c => c.name === 'i_user').value, 'paginaB');
+  // Mesma Página: mantém.
+  r = await spEntrar('facebook', [...salva, { domain: '.facebook.com', name: 'i_user', value: 'paginaB' }]);
+  assert.ok(r.mantida);
+
   // Troca por outra conta guarda a anterior; restaurar devolve a anterior.
   jar = [{ domain: '.facebook.com', name: 'c_user', value: '999', path: '/' }, { domain: '.facebook.com', name: 'xs', value: 'viva', path: '/' }];
   r = await spEntrar('facebook', salva);
-  assert.equal(spIdConta('facebook', r.anterior), '999');
+  assert.equal(spIdConta('facebook', r.anterior), '999|');
   assert.equal(jar.find(c => c.name === 'xs').value, 'velho');
   await spRestaurarSessao('facebook', r.anterior);
   assert.equal(jar.find(c => c.name === 'c_user').value, '999');
