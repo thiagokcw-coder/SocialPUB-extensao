@@ -217,6 +217,12 @@ senha.
 
 ## Testes
 
+**0.8.1 — prévia do reel aceita na tela final do Facebook:** em «Configurações
+do reel» o vídeo tocava e mesmo assim parava em «a mídia não apareceu no
+post»: o navegador dava o `<video>` como invisível. Agora conta o vídeo
+carregado com área na tela e, nas telas do reel, o controle «Pausar/Reproduzir
+vídeo» do player no diálogo. Vídeo fora de um diálogo continua não valendo.
+
 **0.8.27 — confirmar a Página pela foto do avatar:** em pt-BR o botão
 «Conta, seu perfil» traz a imagem com o rótulo genérico «Seu perfil», sem o
 nome. Nesse caso a Página é confirmada pela FOTO: o arquivo do avatar da conta

@@ -144,6 +144,16 @@ async def main():
               return SP.facebookEstado('Página Exemplo');
             }''', heading)
             assert state['ok'] and state['etapa'] == 'final_reel', state
+        # 16/11: vídeo do reel tocando, mas recusado pelo checkVisibility; o
+        # controle «Pausar vídeo» do player no diálogo comprova a prévia.
+        for controle, esperado in (('<div role="button" aria-label="Pausar vídeo" style="width:20px;height:20px"></div>', 1), ('', 0)):
+            await page.set_content('<div role="dialog"><h2>Criar post</h2><span>Página Exemplo</span><textarea></textarea></div>')
+            assert await page.evaluate('SP.facebookIniciar("Página Exemplo")')
+            state = await page.evaluate('''controle => {
+              document.querySelector('[role=dialog]').innerHTML = `<h2>Configurações do reel</h2><textarea aria-label="Descreva seu reel..."></textarea><div role="button">Postar</div><video style="width:100px;height:100px;opacity:0"></video>${controle}`;
+              return SP.facebookEstado('Página Exemplo');
+            }''', controle)
+            assert state['etapa'] == 'final_reel' and state['midia'] == esperado, state
         await browser.close()
     print('OK: 18 cenários Facebook; prévia atrasada/intermediária, mídia externa bloqueada e guardas de publicação')
 

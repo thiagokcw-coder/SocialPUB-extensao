@@ -13,7 +13,7 @@
 // a armadilha do «Criar» (textContent "Novo postCriar", tela só "Criar") e a do
 // «Original» (rótulo num <span> dentro do botão — o innerText do botão é o mesmo).
 (() => {
-  const VERSAO = 13;
+  const VERSAO = 14;
   if (self.SP && self.SP.versao === VERSAO) return;
 
   const INVIS = /[​‌‍﻿⁠]/g;
@@ -277,9 +277,22 @@
       if (autor.nomes.length && !autor.ok) return { ok: false, nomes: autor.nomes };
       const ed = descricao || Array.from(d.querySelectorAll('[contenteditable="true"], [role="textbox"], textarea')).find(visivel);
       const videosNoDialogo = Array.from(d.querySelectorAll('video'));
-      const videos = videosNoDialogo.filter(visivel);
+      // 16/11: em «Configurações do reel» o vídeo TOCAVA (com «Pausar vídeo»
+      // no diálogo) e o checkVisibility o recusava — «a mídia não apareceu no
+      // post». Conta também o vídeo carregado com área na tela e, na etapa
+      // final do reel, o controle de play/pausa do player do diálogo.
+      const carregado = v => { const r = v.getBoundingClientRect(); return r.width > 20 && r.height > 20 && v.videoWidth > 0 && !v.error; };
+      const videos = videosNoDialogo.filter(v => visivel(v) || carregado(v));
+      const controlePlayer = Array.from(d.querySelectorAll('[role="button"][aria-label]')).some(e => visivel(e)
+        && /^(?:Pausar vídeo|Reproduzir vídeo|Pause video|Play video|Pausar|Reproduzir)$/i.test(e.getAttribute('aria-label')));
+      if (!videos.length && controlePlayer && (etapa === 'final_reel' || etapa === 'editar_reel')) {
+        // O player pode estar num portal fora do diálogo: vale o vídeo carregado de um diálogo visível.
+        const alvo = videosNoDialogo[0] || Array.from(document.querySelectorAll('[role="dialog"] video'))
+          .find(v => visivel(v.closest('[role="dialog"]')) && carregado(v));
+        if (alvo) videos.push(alvo);
+      }
       const diagnosticoMidia = {
-        etapa, videosNoDialogo: videosNoDialogo.length, videosVisiveis: videos.length,
+        etapa, videosNoDialogo: videosNoDialogo.length, videosVisiveis: videos.length, controlePlayer,
         videosForaDoDialogo: Array.from(document.querySelectorAll('video')).filter(v => !d.contains(v)).length,
         videos: videosNoDialogo.slice(0, 5).map(v => {
           const r = v.getBoundingClientRect(), css = getComputedStyle(v);
