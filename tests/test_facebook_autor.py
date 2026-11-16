@@ -120,6 +120,7 @@ async def main():
                   publishing = args[0] === RECEITAS.facebook.publicar;
                   return {ok: true, idx: 0, x: 0, y: 0};
                 }
+                if (method === 'existe' && String(args[0][0]).includes('password')) return false;
                 if (method === 'existe' || method === 'sumiu') return true;
                 if (method === 'ler') return {texto: '', botao: {existe: true, habilitado: true}};
                 if (method === 'botao') return {existe: true, habilitado: true};

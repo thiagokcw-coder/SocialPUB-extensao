@@ -13,7 +13,7 @@
 // a armadilha do «Criar» (textContent "Novo postCriar", tela só "Criar") e a do
 // «Original» (rótulo num <span> dentro do botão — o innerText do botão é o mesmo).
 (() => {
-  const VERSAO = 12;
+  const VERSAO = 13;
   if (self.SP && self.SP.versao === VERSAO) return;
 
   const INVIS = /[​‌‍﻿⁠]/g;
@@ -149,18 +149,40 @@
 
     facebookConta(nome) {
       // Apenas o controle de conta no cabeçalho; nome da Página no feed não prova identidade.
-      const nomes = [];
+      const nomes = [], fotosConta = [];
+      // 16/11 (pt-BR): o botão é «Conta, seu perfil» e a imagem dele diz só
+      // «Seu perfil» — rótulo genérico, sem o nome. Aí a prova é a FOTO: o
+      // arquivo do avatar da conta tem de ser o da foto de perfil da Página.
+      const generico = /^(?:Seu perfil|Your profile|O teu perfil|Conta|Account|Perfil|Profile)$/i;
+      const arquivo = el => {
+        const u = el.getAttribute('xlink:href') || el.getAttribute('href') || el.getAttribute('src') || '';
+        try { return new URL(u, location.href).pathname.split('/').pop() || ''; } catch (_) { return ''; }
+      };
       for (const b of document.querySelectorAll('[role="banner"] [role="button"], [role="banner"] button')) {
         if (!visivel(b) || !/^(?:Conta|Account|Seu perfil|Your profile|O teu perfil)(?:[, :]|$)/i.test(b.getAttribute('aria-label') || '')) continue;
         for (const img of b.querySelectorAll('img, [role="img"], svg image')) {
           for (const attr of ['alt', 'aria-label']) {
             const valor = norm(img.getAttribute(attr));
-            if (valor) nomes.push(valor.replace(/^(?:Foto d[oe] perfil de|Imagem d[oe] perfil de|Profile picture of|Profile photo of)\s+/i, ''));
+            if (valor && !generico.test(valor)) nomes.push(valor.replace(/^(?:Foto d[oe] perfil de|Imagem d[oe] perfil de|Profile picture of|Profile photo of)\s+/i, ''));
           }
+          const f = arquivo(img);
+          if (/\.(?:jpe?g|png|webp)$/i.test(f)) fotosConta.push(f);
         }
       }
       const unicos = [...new Set(nomes.map(n => n.toLocaleLowerCase()))];
-      return { ok: unicos.length === 1 && unicos[0] === norm(nome).toLocaleLowerCase(), nomes };
+      if (unicos.length) return { ok: unicos.length === 1 && unicos[0] === norm(nome).toLocaleLowerCase(), nomes, via: 'nome' };
+      // Foto de perfil da Página: o botão «Ações da foto do perfil» do topo
+      // (só aparece para quem está COMO a Página) ou o avatar dos posts dela.
+      const alvo = norm(nome).replace(/"/g, '');
+      const fotosPagina = new Set();
+      for (const img of document.querySelectorAll(['[aria-label="Ações da foto do perfil"]', '[aria-label="Profile picture actions"]',
+        '[aria-label="Ações da fotografia de perfil"]', `[role="main"] a[aria-label="${alvo}"]`].map(s => s + ' image, ' + s + ' img').join(', '))) {
+        const f = arquivo(img);
+        if (f) fotosPagina.add(f);
+      }
+      const fotos = [...new Set(fotosConta)];
+      const ok = fotos.length === 1 && fotosPagina.has(fotos[0]);
+      return { ok, nomes, via: 'foto', fotoConta: fotos, fotoPagina: [...fotosPagina].slice(0, 4) };
     },
 
     facebookComo(nome) {

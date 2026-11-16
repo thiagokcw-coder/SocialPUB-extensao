@@ -333,7 +333,9 @@ async function prepararRede(redeId, midia, texto, opcoes) {
         log('troca de perfil: feita; avatar da Página confirmado', 'ok');
       } else log('troca de perfil: verificando se já estava na Página');
       const conta = await naAba('facebookConta', nome);
-      if (!conta?.ok) throw new EtapaFalhou(`não foi possível confirmar o avatar da Página ${nome}; compositor bloqueado`);
+      if (!conta?.ok) throw new EtapaFalhou(`não foi possível confirmar o avatar da Página ${nome}; compositor bloqueado`
+        + (conta ? ` (pelo ${conta.via || 'nome'}: conta ${JSON.stringify(conta.nomes?.length ? conta.nomes : conta.fotoConta || [])}`
+          + (conta.via === 'foto' ? `, Página ${JSON.stringify(conta.fotoPagina || [])}` : '') + ')' : ''));
       log('troca de perfil: ' + (s?.ok || banner?.length ? 'feita' : 'já estava na Página') + '; avatar confirmado', 'ok');
       vigiarNavegacao = true;
     }

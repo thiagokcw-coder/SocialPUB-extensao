@@ -217,6 +217,13 @@ senha.
 
 ## Testes
 
+**0.8.27 — confirmar a Página pela foto do avatar:** em pt-BR o botão
+«Conta, seu perfil» traz a imagem com o rótulo genérico «Seu perfil», sem o
+nome. Nesse caso a Página é confirmada pela FOTO: o arquivo do avatar da conta
+tem de ser o mesmo da foto de perfil da Página («Ações da foto do perfil»). Se
+não bater, o erro mostra os dois arquivos. `python
+tests/test_facebook_conta_foto.py` cobre o caso.
+
 **0.8.26 — devolver a sessão do navegador quando a guardada não vale:** antes
 de trocar a sessão da rede pela da persona, a extensão guarda a que estava no
 navegador; se a rede abrir pedindo e-mail e senha, devolve essa sessão, em vez
