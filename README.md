@@ -217,7 +217,7 @@ senha.
 
 ## Testes
 
-**0.8.1 — prévia do reel aceita na tela final do Facebook:** em «Configurações
+**0.8.28 — prévia do reel aceita na tela final do Facebook:** em «Configurações
 do reel» o vídeo tocava e mesmo assim parava em «a mídia não apareceu no
 post»: o navegador dava o `<video>` como invisível. Agora conta o vídeo
 carregado com área na tela e, nas telas do reel, o controle «Pausar/Reproduzir
