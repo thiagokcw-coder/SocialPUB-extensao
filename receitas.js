@@ -22,7 +22,12 @@ const RECEITAS = {
     medido_em: '2026-10-23 (app) · 2026-11-13 (extensão)',
     // O compositor da linha do tempo também tem estes campos. Espere o
     // diálogo abrir e nunca use os campos que ficam atrás dele.
-    abrir: { esperar: ['[role=dialog] div[data-testid="tweetTextarea_0"]'] },
+    // `reserva`: no navegador do Grok (16/11, inglês, Linux) a URL
+    // /compose/post abriu a linha do tempo SEM o diálogo. Só se o diálogo não
+    // aparecer em 20s, clica o «Post» da barra lateral, que abre o mesmo diálogo.
+    abrir: { esperar: ['[role=dialog] div[data-testid="tweetTextarea_0"]'],
+             reserva: ['a[data-testid="SideNav_NewTweet_Button"]', 'a[href="/compose/post"][aria-label="Post"]',
+                       'a[href="/compose/post"][aria-label="Postar"]', 'a[href="/compose/post"]'] },
     arquivo: ['[role=dialog] input[data-testid="fileInput"]'],
     arquivo_nativo: true,
     upload: ['[role=dialog] [data-testid="attachments"]'],

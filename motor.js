@@ -361,7 +361,14 @@ async function prepararRede(redeId, midia, texto, opcoes) {
             await new Promise(r => setTimeout(r, 300));
           }
         }
-        const d = await naAba('localizar', R.abrir.esperar, 20000);
+        let d = await naAba('localizar', R.abrir.esperar, 20000);
+        if ((!d || !d.ok) && R.abrir.reserva && !R.abrir.clicar) {
+          log('o compositor não abriu pela URL em 20s — tentando pelo botão de criar da barra lateral', 'am');
+          if (await naAba('existe', R.abrir.reserva)) {
+            await clicar(R.abrir.reserva, 5000, 'botão de criar (reserva)');
+            d = await naAba('localizar', R.abrir.esperar, 20000);
+          }
+        }
         if (!d || !d.ok) {
           if (!R.abrir.clicar) throw new EtapaFalhou('o compositor não abriu — parei antes de anexar');
           // Clicar em "criar" não muda de página: se mudou, o clique foi parar

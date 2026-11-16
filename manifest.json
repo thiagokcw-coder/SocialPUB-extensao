@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SocialPUB",
-  "version": "0.8.29",
+  "version": "0.8.30",
   "description": "Prepara e publica no X, Instagram (Reel), TikTok, Threads e Facebook, por persona — anexa, escreve, confere e publica (ou para antes do botão final).",
   "permissions": [
     "scripting",

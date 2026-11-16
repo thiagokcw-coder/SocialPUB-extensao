@@ -13,7 +13,7 @@
 // a armadilha do «Criar» (textContent "Novo postCriar", tela só "Criar") e a do
 // «Original» (rótulo num <span> dentro do botão — o innerText do botão é o mesmo).
 (() => {
-  const VERSAO = 14;
+  const VERSAO = 15;
   if (self.SP && self.SP.versao === VERSAO) return;
 
   const INVIS = /[​‌‍﻿⁠]/g;
@@ -93,7 +93,13 @@
       const a = await esperarAchar(cands, prazoMs, true);
       if (!a) return { ok: false, erro: 'não achei na tela: ' + cands.map(descrever).join(' | ') };
       a.el.scrollIntoView({ block: 'center', inline: 'center' });
-      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      // Dois quadros para o scroll assentar — com limite: numa aba que o
+      // navegador dá como oculta (navegador do Grok, 16/11) o
+      // requestAnimationFrame não dispara e a leitura travava até os 60s.
+      await Promise.race([
+        new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))),
+        pausa(150),
+      ]);
       const r = a.el.getBoundingClientRect();
       return { ok: true, idx: a.idx, x: r.left + r.width / 2, y: r.top + r.height / 2,
                texto: norm(a.el.innerText).slice(0, 80), aria: a.el.getAttribute('aria-label') || '',

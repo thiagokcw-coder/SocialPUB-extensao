@@ -217,6 +217,15 @@ senha.
 
 ## Testes
 
+**0.8.30 — navegador do Grok (inglês, Linux):** pelo diagnóstico de 16/11, o
+Instagram travava 60 s numa leitura porque o `requestAnimationFrame` não
+dispara em aba que o navegador dá como oculta — agora a espera tem limite de
+150 ms. No X, a URL `/compose/post` abriu a linha do tempo sem o diálogo: só se
+o diálogo não aparecer em 20 s, a extensão clica o «Post» da barra lateral e
+espera de novo. No Chrome em que o diálogo abre, nada muda.
+`python tests/test_localizar_oculta.py` e o caso novo em
+`tests/test_x_midia.py` cobrem os dois.
+
 **0.8.29 — recusar a oferta que o Facebook abre depois de Postar:** depois do
 clique em «Postar» apareceu «Fale diretamente com as pessoas» (botão «Ligar
 agora») e a publicação ficou parada. A extensão responde «Agora não» (nunca

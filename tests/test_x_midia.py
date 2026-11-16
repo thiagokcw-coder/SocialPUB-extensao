@@ -12,6 +12,7 @@ from playwright.async_api import async_playwright
 
 ROOT = Path(__file__).resolve().parent.parent
 HTML = """
+<a data-testid="SideNav_NewTweet_Button" href="/compose/post" aria-label="Post" style="display:block;width:60px;height:30px" onclick="window.sideClicks=(window.sideClicks||0)+1; openComposer(); return false">Post</a>
 <div id="feed">
   <input type="file" data-testid="fileInput">
   <div contenteditable="true" data-testid="tweetTextarea_0">atrás</div>
@@ -100,6 +101,14 @@ async def main():
         assert r.get('erro') == 'a mídia não apareceu no post', r
         assert await page.evaluate('posts === 0')
         print('OK: mídia perdida entre conferir e publicar bloqueada', flush=True)
+
+        # Navegador do Grok (16/11): a URL não abriu o diálogo; o «Post» da
+        # barra lateral abre — e só é clicado depois de 20s sem diálogo.
+        r = await run("void 0", publish=False)
+        assert r.get("legendaOk") and await page.evaluate("sideClicks === 1 && posts === 0"), r
+        r = await run("setTimeout(openComposer, 500)", publish=False)
+        assert await page.evaluate("!window.sideClicks"), r
+        print('OK: reserva pela barra lateral só sem diálogo', flush=True)
 
         r = await run()
         assert r.get('publicou') and await page.evaluate('posts === 1'), r
