@@ -187,6 +187,11 @@ async function spEntrar(rede, cookies) {
       return { apagados: 0, gravados: 0, recusados: [], entrou: true, mantida: true };
     }
   }
+  // Guarda a sessão que estava no navegador: se a guardada não valer (a rede
+  // abre pedindo senha), o painel devolve esta — 16/11, a troca por uma sessão
+  // velha deixou o Facebook deslogado também para a pessoa.
+  let anterior = null;
+  try { anterior = (await spCapturarSessao(rede)).cookies; } catch (_) { /* não estava logado */ }
   const recusados = [];
   const novos = new Set();
   let gravados = 0;
@@ -217,7 +222,20 @@ async function spEntrar(rede, cookies) {
   }
   const nomesRecusados = new Set(recusados.map(r => r.name));
   // A conta só "entrou" se gravou algo e NENHUM cookie que autentica foi recusado.
-  return { apagados, gravados, recusados, entrou: gravados > 0 && !cfg.chaves.some(k => nomesRecusados.has(k)) };
+  return { apagados, gravados, recusados, anterior, entrou: gravados > 0 && !cfg.chaves.some(k => nomesRecusados.has(k)) };
+}
+
+/** Devolve ao navegador a sessão capturada antes da troca (`spEntrar().anterior`).
+ * Tira a que não valeu e grava a anterior, cookie a cookie. */
+async function spRestaurarSessao(rede, cookies) {
+  if (!cookies || !cookies.length) return { gravados: 0, recusados: 0 };
+  await spSairLocal(rede);
+  let gravados = 0, recusados = 0;
+  for (const c of cookies) {
+    try { (await chrome.cookies.set(spParaChrome(c, rede))) ? gravados++ : recusados++; }
+    catch (_) { recusados++; }
+  }
+  return { gravados, recusados };
 }
 
 // ── Entrar pela TELA (sem Cookie-Editor) ─────────────────────────────────

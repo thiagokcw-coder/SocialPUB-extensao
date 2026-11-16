@@ -529,9 +529,20 @@ $('ir').addEventListener('click', async () => {
         log(`[${RECEITAS[id].nome}] o navegador já está na conta de ${conta.usuario ? '@' + conta.usuario : p.nome} — mantive a sessão aberta (e atualizei a guardada)`, 'ok');
       } else log(`[${RECEITAS[id].nome}] sessão de ${conta.usuario ? '@' + conta.usuario : p.nome} no navegador (${e.gravados} cookie(s))`
           + (e.recusados.length ? ` · ${e.recusados.length} recusado(s) que não autenticam` : ''), e.recusados.length ? 'am' : 'ok');
-      resultados.push(await prepararRede(id, midia, texto,
+      const r = await prepararRede(id, midia, texto,
         { publicar, colaboradores: id === 'instagram' ? colaboradores : [], facebookPagina: p.facebook_pagina || '',
-          facebookPaginaUrl: p.facebook_pagina_url || '', log }));
+          facebookPaginaUrl: p.facebook_pagina_url || '', log });
+      resultados.push(r);
+      // A guardada não valeu (a rede pediu senha): devolve a sessão que estava
+      // no navegador, para não deixar a pessoa deslogada por causa da troca.
+      if (!e.mantida && r.diagnostico && r.diagnostico.parece_login) {
+        if (e.anterior) {
+          const v = await spRestaurarSessao(id, e.anterior);
+          log(`[${RECEITAS[id].nome}] a sessão guardada não vale mais — devolvi ao navegador a sessão que estava antes (${v.gravados} cookie(s)). Se ela for desta persona, clique «Salvar sessão atual» em «Contas da persona»`, 'am');
+        } else {
+          log(`[${RECEITAS[id].nome}] a sessão guardada não vale mais e o navegador não estava logado antes — entre no ${RECEITAS[id].nome} neste Chrome e, em «Contas da persona», clique «Salvar sessão atual»`, 'er');
+        }
+      }
     }
 
     log('');

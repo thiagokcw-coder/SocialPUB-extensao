@@ -34,5 +34,13 @@ vm.runInThisContext(fs.readFileSync(path.join(__dirname, '..', 'cookies.js'), 'u
   jar = [{ domain: '.facebook.com', name: 'c_user', value: '123', path: '/' }];
   r = await spEntrar('facebook', salva);
   assert.ok(r.entrou && !r.mantida && sets === 2);
-  console.log('OK: mesma conta mantida, outra conta trocada, navegador deslogado recebe a guardada');
+  // Troca por outra conta guarda a anterior; restaurar devolve a anterior.
+  jar = [{ domain: '.facebook.com', name: 'c_user', value: '999', path: '/' }, { domain: '.facebook.com', name: 'xs', value: 'viva', path: '/' }];
+  r = await spEntrar('facebook', salva);
+  assert.equal(spIdConta('facebook', r.anterior), '999');
+  assert.equal(jar.find(c => c.name === 'xs').value, 'velho');
+  await spRestaurarSessao('facebook', r.anterior);
+  assert.equal(jar.find(c => c.name === 'c_user').value, '999');
+  assert.equal(jar.find(c => c.name === 'xs').value, 'viva');
+  console.log('OK: mesma conta mantida, outra conta trocada, navegador deslogado recebe a guardada, sessão anterior restaurada');
 })().catch(e => { console.error(e); process.exitCode = 1; });

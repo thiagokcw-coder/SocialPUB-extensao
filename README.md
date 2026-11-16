@@ -217,6 +217,11 @@ senha.
 
 ## Testes
 
+**0.8.26 — devolver a sessão do navegador quando a guardada não vale:** antes
+de trocar a sessão da rede pela da persona, a extensão guarda a que estava no
+navegador; se a rede abrir pedindo e-mail e senha, devolve essa sessão, em vez
+de deixar o navegador deslogado. Renove a da persona com «Salvar sessão atual».
+
 **0.8.25 — não deslogar o Facebook com sessão velha:** se o navegador já está
 na MESMA conta da persona (mesmo `c_user`/`ds_user_id`/`twid`/`uid_tt`, com os
 cookies que autenticam), a extensão mantém a sessão aberta em vez de gravar a
