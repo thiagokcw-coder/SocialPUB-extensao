@@ -203,8 +203,15 @@ async function prepararRede(redeId, midia, texto, opcoes) {
   let facebookIniciado = false;
   let facebookMidiaConfirmada = false;
 
-  async function estadoFacebook() {
+  /** `transicao`: durante a troca de tela (depois de Avançar) aceita uma
+   * leitura SEM etapa nem autor — o navegador do Grok (16/11) passou ~4s
+   * nesse meio-termo e o fluxo parava com «não está como a página». Autor
+   * DIFERENTE continua bloqueando na hora. */
+  async function estadoFacebook(transicao = false) {
     const e = await naAba('facebookEstado', opcoes.facebookPagina);
+    if (transicao && e && !e.ok && !e.erro && !(e.nomes || []).length) {
+      return { ...e, etapa: e.etapa === 'criar' ? 'criar' : null, transicao: true };
+    }
     if (!e || !e.ok) {
       log('autores encontrados no compositor: ' + JSON.stringify(e?.nomes || []), 'er');
       throw new EtapaFalhou(e?.erro || `Facebook não está como a página ${opcoes.facebookPagina}`);
@@ -500,8 +507,20 @@ async function prepararRede(redeId, midia, texto, opcoes) {
           const limite = Date.now() + 5000;
           do {
             await new Promise(r => setTimeout(r, 250));
-            e = await estadoFacebook();
+            e = await estadoFacebook(true);
           } while (e.etapa === anterior && Date.now() < limite);
+          // Tela em transição (sem etapa): espera até 20s a nova tela, SEM
+          // clicar de novo — um segundo clique cairia na tela que está chegando.
+          if (!e.etapa || e.transicao) {
+            log(`Facebook em transição depois de Avançar (${anterior}) — esperando a próxima tela`, 'am');
+            const fimT = Date.now() + 20000;
+            while ((!e.etapa || e.transicao) && Date.now() < fimT) {
+              await new Promise(r => setTimeout(r, 500));
+              e = await estadoFacebook(true);
+            }
+            if (!e.etapa || e.transicao) throw new EtapaFalhou(`depois de Avançar (${anterior}) a próxima tela do Facebook não foi reconhecida em 20s — títulos na tela: ${JSON.stringify(e.titulos || [])}`);
+            e = await estadoFacebook();   // confere autor/etapa de verdade
+          }
           if (e.etapa !== anterior) break;
           log(`Avançar sem transição em 5s (${anterior}): ` + JSON.stringify(clicado), 'am');
           if (tentativa === 1) throw new EtapaFalhou(`o Facebook permaneceu em ${anterior} após duas tentativas de Avançar (5s cada)`);

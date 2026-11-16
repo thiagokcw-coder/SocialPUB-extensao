@@ -217,6 +217,14 @@ senha.
 
 ## Testes
 
+**0.8.32 — Facebook: troca de tela lenta depois de Avançar:** no navegador do
+Grok (16/11) o diálogo passou alguns segundos sem título nem autor entre
+«Criar post» e a tela do reel, e o fluxo parava com «Facebook não está como a
+página». Agora, depois de Avançar, essa leitura vazia é «em transição»: espera
+até 20 s a próxima tela, sem clicar de novo, e então confere autor e etapa de
+verdade. Autor DIFERENTE continua bloqueando na hora. Se a tela não for
+reconhecida, o erro mostra os títulos que estavam nela.
+
 **0.8.31 — aba oculta no navegador do Grok:** o diagnóstico da 0.8.30 mostrou o
 diálogo do X «inexistente» mesmo depois do clique em «Post» e a tela de legenda
 do Instagram sem terminar de abrir — sinais de aba tratada como oculta, com as

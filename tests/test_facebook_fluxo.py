@@ -11,7 +11,7 @@ async def main():
         page = await browser.new_page()
         for script in ('pagina.js', 'receitas.js', 'personas.js', 'motor.js', 'teclado.js'):
             await page.add_script_tag(content=(ROOT / script).read_text(encoding='utf-8'))
-        for mode in ('video', 'texto', 'sem_midia', 'perde_midia', 'outro_autor', 'troca_dialogo', 'legenda_perdida', 'publicar', 'troca_antes_publicar', 'reel_direto', 'reel_publicar', 'reel_processando', 'reel_oferta', 'reel_final', 'reel_retry', 'reel_travado', 'previa_intermediaria', 'previa_atrasada', 'previa_fora'):
+        for mode in ('video', 'texto', 'sem_midia', 'perde_midia', 'outro_autor', 'troca_dialogo', 'legenda_perdida', 'publicar', 'troca_antes_publicar', 'reel_direto', 'reel_publicar', 'reel_processando', 'reel_oferta', 'reel_final', 'reel_retry', 'reel_travado', 'previa_intermediaria', 'previa_atrasada', 'previa_fora', 'transicao_lenta'):
             await page.set_content('<div role="dialog" id="fluxo"></div>')
             result = await page.evaluate("""async mode => {
               const caption = 'Legenda de teste', name = 'Uncensored Brasil';
@@ -51,6 +51,8 @@ async def main():
                 if (target === RECEITAS.facebook.avancar) {
                   advances++;
                   if (mode === 'reel_travado' || (mode === 'reel_retry' && advances === 1)) return;
+                  // Grok (16/11): ~segundos sem título nem autor entre as telas.
+                  if (mode === 'transicao_lenta' && stage === 0) { root.innerHTML = '<div>…</div>'; pendente = 30; return; }
                   stage++; render();
                   if (mode === 'troca_dialogo') root.replaceWith(root.cloneNode(true));
                 }
@@ -62,9 +64,10 @@ async def main():
                   else root.remove();
                 }
               };
-              let finalReads = 0, previewReads = 0;
+              let finalReads = 0, previewReads = 0, pendente = 0;
               _motorNaAba = async(id, method, args)=> {
                 if (method === 'facebookConta') return {ok:true,nomes:[name]};
+                if (method === 'facebookEstado' && pendente > 0 && --pendente === 0) { stage++; render(); }
                 if (method === 'facebookEstado' && stage === 1 && mode === 'previa_atrasada' && ++previewReads === 5) root.insertAdjacentHTML('beforeend','<video style="width:200px;height:200px"></video>');
                 if (method === 'facebookEstado' && stage > 0 && mode === 'previa_fora' && !document.getElementById('feedvideo')) root.insertAdjacentHTML('afterend','<video id="feedvideo" style="width:200px;height:200px"></video>');
                 if (method === 'facebookComo' && stage === 1 && video) throw new Error('checagem de autor indevida em Editar reel');
@@ -95,13 +98,15 @@ async def main():
                 return {result,clicks,advances,recusou,logs};
               } finally {window.setTimeout = timeout; Date.now = now;}
             }""", mode)
-            if mode in ('video', 'texto', 'publicar', 'reel_direto', 'reel_publicar', 'reel_processando', 'reel_oferta', 'reel_final', 'reel_retry', 'previa_intermediaria', 'previa_atrasada'):
+            if mode in ('video', 'texto', 'publicar', 'reel_direto', 'reel_publicar', 'reel_processando', 'reel_oferta', 'reel_final', 'reel_retry', 'previa_intermediaria', 'previa_atrasada', 'transicao_lenta'):
                 assert 'erro' not in result['result'], (mode, result)
                 assert result['result']['legendaOk'], (mode, result)
                 assert result['advances'] == (2 if mode == 'reel_retry' else 0 if mode == 'reel_final' else 1 if mode == 'texto' or mode.startswith('reel_') else 2), (mode, result)
             else:
                 assert result['result'].get('erro') or result['result'].get('legendaOk') is False, (mode, result)
             assert result['clicks'] == (1 if mode in ('publicar','reel_publicar','reel_processando','reel_oferta') else 0), (mode, result)
+            if mode == 'transicao_lenta':
+                assert any('em transição' in s for s in result['logs']), result
             if mode == 'reel_oferta':
                 assert result['recusou'] == 1 and result['result']['publicou'], result
                 assert any('respondi «Agora não»' in s for s in result['logs']), result
@@ -160,6 +165,6 @@ async def main():
             }''', controle)
             assert state['etapa'] == 'final_reel' and state['midia'] == esperado, state
         await browser.close()
-    print('OK: 19 cenários Facebook; prévia atrasada/intermediária, mídia externa bloqueada e guardas de publicação')
+    print('OK: 20 cenários Facebook; prévia atrasada/intermediária, mídia externa bloqueada e guardas de publicação')
 
 asyncio.run(main())

@@ -13,7 +13,7 @@
 // a armadilha do «Criar» (textContent "Novo postCriar", tela só "Criar") e a do
 // «Original» (rótulo num <span> dentro do botão — o innerText do botão é o mesmo).
 (() => {
-  const VERSAO = 16;
+  const VERSAO = 17;
   if (self.SP && self.SP.versao === VERSAO) return;
 
   const INVIS = /[​‌‍﻿⁠]/g;
@@ -320,7 +320,7 @@
       const remover = Array.from(d.querySelectorAll('[aria-label]')).some(e => visivel(e) && /^(Remover anexo do post|Remove attachment|Remove post attachment)$/i.test(e.getAttribute('aria-label')));
       const imagens = Array.from(d.querySelectorAll('img')).filter(e => visivel(e) && e.naturalWidth > 80 && e.naturalHeight > 80
         && (etapa === 'final_post' || (remover && ed && (ed.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING))));
-      return { ok: !!etapa && (etapa !== 'criar' || autor.ok), etapa, nomes: autor.nomes,
+      return { ok: !!etapa && (etapa !== 'criar' || autor.ok), etapa, nomes: autor.nomes, titulos: titulos.slice(0, 6),
         texto: ed ? (ed.value ?? ed.innerText) : (etapa === 'final_post' ? d.innerText : ''),
         diagnosticoMidia, videos: videos.length, anexos: videos.length + imagens.length > 0, midia: videos.length + imagens.length };
     },
