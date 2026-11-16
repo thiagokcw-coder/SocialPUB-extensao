@@ -136,7 +136,7 @@ async def main():
             }""", [PAGE, OTHER, stage])
             assert result['result']['erro'] == f'Facebook não está como a página {PAGE}', result
             assert result['publishClicks'] == 0 and result['reads'] == stage, result
-            assert result['opened'] == ['https://www.facebook.com/uncensoredbrasil'], result
+            assert result['opened'] == ['https://www.facebook.com/pagina.exemplo'], result
             assert any('autores encontrados' in s and OTHER in s for s in result['logs']), result
             assert any('tempo · checagem do autor:' in s for s in result['logs']), result
             assert any('tempo · total do motor:' in s for s in result['logs']), result

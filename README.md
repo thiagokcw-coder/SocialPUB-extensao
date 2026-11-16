@@ -217,6 +217,14 @@ senha.
 
 ## Testes
 
+**0.8.35 — Facebook publica como a Página DA PERSONA; avisos antes de criar:**
+o motor usava sempre a Página Uncensored Brasil; agora usa o nome e o link da
+persona (sem link, o padrão de antes). Antes de clicar em criar (Instagram e
+Facebook), recusa avisos por cima da tela («Agora não», «Not Now» — nunca
+«Ativar»). No Facebook, se o compositor não abrir em 10 s, fecha avisos e clica
+em criar mais UMA vez; o erro diz em que botão clicou.
+`python tests/test_avisos_criar.py`.
+
 **0.8.34 — «Abrir conta» de outra persona troca de verdade:** no Facebook, a
 identidade agora é o perfil (`c_user`) **e** a Página em uso (`i_user`); duas
 personas com o mesmo login pessoal e Páginas diferentes não são mais tratadas

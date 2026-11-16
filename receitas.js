@@ -56,6 +56,10 @@ const RECEITAS = {
     // pt-PT («Recortar», «Seguinte», «Escreve uma legenda...», «Partilhar») são
     // ESPERADAS, não medidas: se parar, o diagnóstico diz o nome certo.
     abrir: {
+      // Avisos por cima da tela ANTES de criar (16/11: «Ativar notificações»
+      // no Instagram). Só a recusa — nunca «Ativar».
+      avisos: ['Agora não', 'Not Now', 'Not now', 'Agora não, obrigado', 'Dispensar', 'Dismiss']
+        .map(t => ({ css: '[role="dialog"] button, [role="dialog"] [role="button"]', texto: t })),
       clicar: ['a:has(svg[aria-label="Novo post"])', 'a:has(svg[aria-label="Nova publicação"])',
                'a:has(svg[aria-label="New post"])', { css: 'a', contem: 'Criar' }, { css: 'a', contem: 'Create' }],
       // «Criar» abre um SUBMENU (pt-BR: Postar · Vídeo ao vivo · Anúncio); só a
@@ -189,6 +193,10 @@ const RECEITAS = {
                { css: '[role="dialog"] [role="button"], [role="dialog"] [role="radio"], [role="menu"] [role="menuitem"]', filhoTexto: '{u}' }],
     },
     abrir: {
+      // Avisos por cima da tela ANTES de criar (16/11: «Ativar notificações»
+      // no Instagram). Só a recusa — nunca «Ativar».
+      avisos: ['Agora não', 'Not Now', 'Not now', 'Agora não, obrigado', 'Dispensar', 'Dismiss']
+        .map(t => ({ css: '[role="dialog"] button, [role="dialog"] [role="button"]', texto: t })),
       // Como página (13/11) o botão é «No que você está pensando, Uncensored
       // Brasil?» — o nome entra no meio, então casa por CONTÉM sem o «?», e
       // também por aria-label que COMECE com o texto.

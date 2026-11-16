@@ -158,7 +158,11 @@ async function prepararRede(redeId, midia, texto, opcoes) {
 
   let url = R.url;
   if (R.perfil) {
-    opcoes = { ...opcoes, facebookPagina: 'Uncensored Brasil', facebookPaginaUrl: 'https://www.facebook.com/uncensoredbrasil' };
+    // A Página DA PERSONA (16/11: a Vox Libertas abria a Página da Uncensored
+    // Brasil — estava fixa). Sem link na persona, o padrão de antes.
+    opcoes = String(opcoes.facebookPaginaUrl || '').trim()
+      ? { ...opcoes, facebookPagina: String(opcoes.facebookPagina || '').trim() }
+      : { ...opcoes, facebookPagina: 'Uncensored Brasil', facebookPaginaUrl: 'https://www.facebook.com/uncensoredbrasil' };
     try { url = spUrlPaginaFacebook(opcoes.facebookPaginaUrl); }
     catch (e) { log('✗ ' + e.message, 'er'); return { rede: redeId, erro: e.message }; }
   }
@@ -185,7 +189,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
   };
   if (R.perfil) chrome.tabs.onUpdated.addListener(aoNavegar);
   const checarNavegacao = () => {
-    if (navegou) throw new EtapaFalhou('Facebook navegou durante o fluxo; identidade invalidada. Reinicie pela Página Uncensored Brasil');
+    if (navegou) throw new EtapaFalhou(`Facebook navegou durante o fluxo; identidade invalidada. Reinicie pela Página ${opcoes.facebookPagina}`);
   };
   // A depuração pode CAIR no meio (TikTok, 13/11: «Debugger is not attached»,
   // durante a espera do upload). Religa e repete o comando — a não ser que
@@ -386,7 +390,25 @@ async function prepararRede(redeId, midia, texto, opcoes) {
         log('o compositor já estava aberto');
       } else {
         const antes = await naAba('onde');
-        if (R.abrir.clicar) await clicar(R.abrir.clicar, ESPERA_PADRAO_MS, 'botão de criar');
+        // Avisos que cobrem a tela antes de criar (16/11: «Ativar notificações»
+        // no Instagram; avisos na Página nova do Facebook). Só RECUSAR.
+        const fecharAvisos = async (esperaMs) => {
+          if (!R.abrir.avisos) return 0;
+          let n = 0;
+          const fim = Date.now() + esperaMs;
+          do {
+            if (await naAba('existe', R.abrir.avisos)) {
+              const a = await clicar(R.abrir.avisos, 1000, 'aviso antes de criar');
+              log(`fechei um aviso por cima da tela: «${a.texto || a.aria || '?'}»`, 'am');
+              n++;
+              await new Promise(r => setTimeout(r, 600));
+            } else await new Promise(r => setTimeout(r, 300));
+          } while (Date.now() < fim && n < 3);
+          return n;
+        };
+        if (R.abrir.clicar) await fecharAvisos(2500);
+        let criado = null;
+        if (R.abrir.clicar) criado = await clicar(R.abrir.clicar, ESPERA_PADRAO_MS, 'botão de criar');
         if (R.abrir.clicar && R.abrir.menu) {
           // Diálogo OU submenu, o que vier primeiro (6s). Clicar «Postar» com o
           // diálogo já aberto seria clicar no que estiver atrás.
@@ -401,7 +423,16 @@ async function prepararRede(redeId, midia, texto, opcoes) {
             await new Promise(r => setTimeout(r, 300));
           }
         }
-        let d = await naAba('localizar', R.abrir.esperar, 20000);
+        let d = await naAba('localizar', R.abrir.esperar, R.abrir.clicar ? 10000 : 20000);
+        if ((!d || !d.ok) && R.abrir.clicar && !R.abrir.menu && (await naAba('onde')) === antes) {
+          // Um aviso pode ter engolido o clique: fecha e tenta UMA vez mais.
+          log(`cliquei em criar («${criado?.texto || criado?.aria || '?'}») e o compositor não abriu em 10s — fechando avisos e tentando de novo`, 'am');
+          await fecharAvisos(1500);
+          if (!(await naAba('existe', R.abrir.esperar))) {
+            criado = await clicar(R.abrir.clicar, 5000, 'botão de criar (2ª vez)');
+            d = await naAba('localizar', R.abrir.esperar, 15000);
+          } else d = await naAba('localizar', R.abrir.esperar, 1000);
+        }
         if ((!d || !d.ok) && R.abrir.reserva && !R.abrir.clicar) {
           log('o compositor não abriu pela URL em 20s — tentando pelo botão de criar da barra lateral', 'am');
           if (await naAba('existe', R.abrir.reserva)) {
@@ -415,7 +446,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
           // em outro lugar — e seguir clicando lá seria pior.
           const depois = await naAba('onde');
           if (depois !== antes) throw new EtapaFalhou(`o clique em criar levou para ${depois} — não era o botão de criar; parei`);
-          throw new EtapaFalhou('cliquei em criar e o compositor não abriu — a tela que ficou aberta não foi medida');
+          throw new EtapaFalhou(`cliquei em criar («${criado?.texto || criado?.aria || '?'}») duas vezes e o compositor não abriu — veja o diagnóstico da tela`);
         }
         log('✓ compositor aberto', 'ok');
       }
