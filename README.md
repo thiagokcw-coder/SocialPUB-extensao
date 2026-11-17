@@ -217,6 +217,13 @@ senha.
 
 ## Testes
 
+**0.8.37 — Instagram: «Next» da tela Edit que não pegou:** o diálogo ainda
+animava quando o motor clicou em «Next»; o botão andou e o clique caiu fora
+(«mudou de lugar com o mouse em cima»). Agora o motor espera o botão parar
+antes de clicar e, se em 12 s a tela não mudou e o MESMO botão continua lá,
+clica mais UMA vez (nunca se o botão sumiu). Vale para todos os passos
+medidos. `python tests/test_instagram_passos.py`.
+
 **0.8.36 — Facebook reconhece «Definições de reels» (pt-PT):** a última tela
 do reel no Facebook em português de Portugal se chama «Definições de reels»
 (com «de» e no plural); o motor só conhecia «Configurações do reel», «Reel

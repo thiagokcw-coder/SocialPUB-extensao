@@ -303,12 +303,24 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     // em vez de «Criar» (foi parar nas ferramentas de anúncio).
     await cmd('Input.dispatchMouseEvent', { type: 'mouseMoved', x: p.x, y: p.y });
     await new Promise(r => setTimeout(r, 400));
-    const q = await naAba('localizar', cands, 1500);
+    let q = await naAba('localizar', cands, 1500);
     if (cands === R.avancar && !q?.ok) throw new EtapaFalhou('Avançar saiu do diálogo visível antes do clique');
-    const ponto = (q && q.ok) ? q : p;
-    if (q && q.ok && (Math.abs(q.x - p.x) > 4 || Math.abs(q.y - p.y) > 4)) {
+    const mudou = (a, b) => Math.abs(a.x - b.x) > 4 || Math.abs(a.y - b.y) > 4;
+    if (q && q.ok && mudou(q, p)) {
       log(`(${oQue}: mudou de lugar com o mouse em cima — cliquei na posição nova)`);
+      // 16/11 (Instagram, tela Edit): o diálogo ainda ANIMAVA e o «Next»
+      // continuou andando — o clique na posição nova caiu fora. Espera parar.
+      for (let i = 0; i < 5; i++) {
+        await new Promise(r => setTimeout(r, 300));
+        const r2 = await naAba('localizar', cands, 1500);
+        if (!r2 || !r2.ok) break;
+        const parado = !mudou(r2, q);
+        q = r2;
+        if (parado) break;
+      }
+      await cmd('Input.dispatchMouseEvent', { type: 'mouseMoved', x: q.x, y: q.y });
     }
+    const ponto = (q && q.ok) ? q : p;
     await spClicarEm(cmd, ponto.x, ponto.y);
     return ponto;
   }
@@ -508,7 +520,16 @@ async function prepararRede(redeId, midia, texto, opcoes) {
         }
         await clicar(passo.clicar, ESPERA_PADRAO_MS, `passo «${passo.id}»`);
         if (passo.esperar) {
-          const e = await naAba('localizar', passo.esperar, ESPERA_PADRAO_MS);
+          let e = await naAba('localizar', passo.esperar, 12000);
+          // 16/11 (Instagram, 0.8.36): o clique em «Next» da tela Edit não
+          // pegou e a tela ficou parada. Se o MESMO botão ainda está lá (a
+          // tela não mudou), clica mais UMA vez — nunca quando ele sumiu.
+          if ((!e || !e.ok) && (await naAba('localizar', passo.clicar, 1000))?.ok) {
+            log(`passo «${passo.id}»: a tela não mudou em 12s e o botão continua lá — cliquei de novo`, 'am');
+            await clicar(passo.clicar, 3000, `passo «${passo.id}» (2ª vez)`);
+            e = null;
+          }
+          if (!e || !e.ok) e = await naAba('localizar', passo.esperar, ESPERA_PADRAO_MS);
           if (!e || !e.ok) throw new EtapaFalhou(`depois do passo «${passo.id}», a próxima tela medida não apareceu`);
         }
         log(`✓ passo «${passo.id}»`, 'ok');
