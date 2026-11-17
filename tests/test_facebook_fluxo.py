@@ -76,6 +76,7 @@ async def main():
                   SP.facebookComo = () => {throw new Error('leitura indireta de autor em Editar reel');};
                   try {return SP.facebookEstado(...args);} finally {SP.facebookComo = read;}
                 }
+                if (method === 'noPonto') return {ok:true, desc:'(posição simulada)'};
                 if (method === 'localizar') {
                   if (args[0] === RECEITAS.facebook.perfil.alternar) return {ok:false};
                   target = args[0]; return {ok:true,idx:0,x:0,y:0};

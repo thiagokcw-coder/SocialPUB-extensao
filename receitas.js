@@ -77,6 +77,9 @@ const RECEITAS = {
                         '[role="dialog"]:has(svg[aria-label="Select crop"])', '[role="dialog"][aria-label="Cortar"]',
                         '[role="dialog"][aria-label="Recortar"]', '[role="dialog"][aria-label="Crop"]'],
     espera_arquivo_s: 60,
+    // Todos os passos acontecem dentro do diálogo de criação: se ele sumir,
+    // o erro diz que FECHOU (e onde caiu o último clique).
+    passos_no_dialogo: true,
     passos: [
       // aviso «posts de vídeo são compartilhados como reels» — só às vezes
       { id: 'aviso_reels', opcional: true, clicar: [{ css: '[role="dialog"] button', texto: 'OK' }], esperar_sumir: true },

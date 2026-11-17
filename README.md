@@ -217,6 +217,15 @@ senha.
 
 ## Testes
 
+**0.8.39 — nunca clicar fora do diálogo (Instagram fechava sozinho):** na Vox
+o diálogo de criação do Instagram sumia entre «cortar» e «editar» e a aba voltava
+ao feed. Um clique que cai FORA do diálogo fecha o compositor. Antes de cada
+clique o motor confere o que está no ponto (`SP.noPonto`): se o alvo está num
+diálogo e o ponto cai fora, mede de novo por até 3 s e, se continuar, NÃO
+clica e diz o que estava no ponto. Se o diálogo fechar, o erro agora diz
+«o diálogo de criação FECHOU depois do passo …» e onde foi o clique.
+`python tests/test_instagram_passos.py`.
+
 **0.8.38 — Instagram só é PUBLICADO com a mensagem do Instagram:** na 0.8.37
 o motor disse PUBLICADO porque «Share» sumiu, e o reel nunca chegou ao perfil.
 Agora, depois do clique, espera até 180 s por «Reel shared» / «Seu reel foi

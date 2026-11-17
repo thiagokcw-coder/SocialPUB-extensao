@@ -25,7 +25,17 @@ const compartilhar = () => {
   const h = document.createElement('h1'); h.textContent = 'Sharing'; tela('Sharing', h);
   setTimeout(() => { h.textContent = window.FIM === 'ok' ? 'Reel shared' : "Your reel couldn't be shared."; }, 1500);
 };
-const editar = () => tela('Edit', btn('Next', () => { if (++cliquesNext >= window.MODO) legenda(); }));
+const editar = () => {
+  tela('Edit', btn('Next', () => { if (++cliquesNext >= window.MODO) legenda(); }));
+  // Camada FORA do diálogo por cima de tudo: clicar nela fecha o compositor.
+  if (window.VEU) {
+    const v = document.createElement('div'); v.id = 'veu';
+    v.style.cssText = 'position:fixed;inset:0;z-index:9';
+    v.onclick = () => { window.fechou = true; d.remove(); v.remove(); };
+    document.body.append(v);
+    if (window.VEU === 'passa') setTimeout(() => v.remove(), 1200);
+  }
+};
 const corte = () => {
   const s = document.createElement('button'); s.style.cssText = 'width:40px;height:40px';
   s.innerHTML = '<svg aria-label="Select crop" width="20" height="20"></svg>';
@@ -50,7 +60,7 @@ window.chrome = {
 """
 
 
-async def rodar(b, modo, arquivo, fim=''):
+async def rodar(b, modo, arquivo, fim='', veu=''):
     page = await b.new_page()
     session = await page.context.new_cdp_session(page)
 
@@ -60,13 +70,13 @@ async def rodar(b, modo, arquivo, fim=''):
         return await session.send(m, params)
     await page.expose_function('cdp', cdp)
     await page.set_content(HTML)
-    await page.evaluate(f'window.MODO = {modo}; window.FIM = "{fim}"')
+    await page.evaluate(f'window.MODO = {modo}; window.FIM = "{fim}"; window.VEU = "{veu}"')
     await page.add_script_tag(content=MOCK)
     for name in ('pagina.js', 'receitas.js', 'arquivo.js', 'teclado.js', 'personas.js', 'cookies.js', 'motor.js'):
         await page.add_script_tag(content=(ROOT / name).read_text(encoding='utf-8'))
     await page.evaluate('RECEITAS.instagram.publicado_espera_s = 4')
     r = await page.evaluate("""fim => prepararRede('instagram', {nome:'v.mp4', tipo:'video/mp4', b64:'AAAA'}, fim ? 'Legenda' : '', {publicar: !!fim, log: s => logs.push(s)})""", fim)
-    out = r, await page.evaluate('logs'), await page.evaluate('cliquesNext')
+    out = r, await page.evaluate('logs'), await page.evaluate('[cliquesNext, !!window.fechou]')
     await page.close()
     return out
 
@@ -75,10 +85,10 @@ async def main():
     arquivo = str(Path(__file__).resolve())   # qualquer arquivo real serve à réplica
     async with async_playwright() as p:
         b = await p.chromium.launch(channel='chrome', headless=True)
-        r, logs, n = await rodar(b, 1, arquivo)
+        r, logs, (n, _) = await rodar(b, 1, arquivo)
         assert any('✓ passo «editar»' in s for s in logs), (r, logs)
         assert n == 1 and not any('cliquei de novo' in s for s in logs), (n, logs)
-        r, logs, n = await rodar(b, 2, arquivo)
+        r, logs, (n, _) = await rodar(b, 2, arquivo)
         assert any('cliquei de novo' in s for s in logs), (r, logs)
         assert any('✓ passo «editar»' in s for s in logs), (r, logs)
         assert n == 2, (n, logs)
@@ -90,6 +100,12 @@ async def main():
         assert any('não mostrou a mensagem de publicado' in s for s in logs), logs
         r, logs, _ = await rodar(b, 1, arquivo, 'falhou')
         assert not r.get('publicou') and 'NÃO conseguiu publicar' in r.get('erro', ''), (r, logs)
+        # Camada por cima do «Next»: espera ela sair; se não sai, NÃO clica.
+        r, logs, (n, fechou) = await rodar(b, 1, arquivo, veu='passa')
+        assert not fechou and n == 1 and any('✓ passo «editar»' in s for s in logs), (r, logs)
+        r, logs, (n, fechou) = await rodar(b, 1, arquivo, veu='fica')
+        assert not fechou and n == 0 and 'NÃO cliquei' in r.get('erro', '') and 'FORA de diálogo' in r['erro'], (r, logs)
+        print('OK: Instagram — nunca clica fora do diálogo (o compositor não fecha)')
         print('OK: Instagram — PUBLICADO só com «Reel shared»; sumiço sem mensagem e falha não contam')
         print('OK: Instagram — Next da tela Edit clicado de novo só quando a tela não mudou')
         await b.close()

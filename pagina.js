@@ -13,7 +13,7 @@
 // a armadilha do «Criar» (textContent "Novo postCriar", tela só "Criar") e a do
 // «Original» (rótulo num <span> dentro do botão — o innerText do botão é o mesmo).
 (() => {
-  const VERSAO = 18;
+  const VERSAO = 19;
   if (self.SP && self.SP.versao === VERSAO) return;
 
   const INVIS = /[​‌‍﻿⁠]/g;
@@ -111,6 +111,27 @@
     },
 
     existe(cands) { return !!achar(cands, true); },
+
+    /** O que está DE FATO no ponto do clique, e se é o elemento procurado.
+     * 17/11 (Instagram, Vox): o diálogo de criação fechou entre os passos —
+     * um clique fora dele fecha. Nunca clicar sem conferir o ponto. */
+    noPonto(cands, x, y) {
+      const a = achar(cands, true);
+      const alvo = document.elementFromPoint(x, y);
+      let desc = '(nada no ponto)';
+      if (alvo) {
+        const papel = alvo.getAttribute('role');
+        const t = norm(alvo.innerText || alvo.getAttribute('aria-label') || '').slice(0, 40);
+        desc = alvo.tagName.toLowerCase() + (papel ? `[role=${papel}]` : '') + (t ? ` «${t}»` : '')
+          + (alvo.closest('[role="dialog"]') ? ' (no diálogo)' : ' (FORA de diálogo)');
+      }
+      // Só recusa o caso perigoso: o alvo está num diálogo e o ponto cai
+      // FORA de qualquer diálogo (ou em nada). Camadas dentro do diálogo
+      // (placeholder por cima do campo) continuam valendo.
+      const dentro = el => !!(el && el.closest('[role="dialog"]'));
+      const ok = !a || !dentro(a.el) || dentro(alvo);
+      return { ok, desc };
+    },
 
     onde() { return location.origin + location.pathname; },
 

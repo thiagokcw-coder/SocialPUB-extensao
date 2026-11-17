@@ -320,7 +320,18 @@ async function prepararRede(redeId, midia, texto, opcoes) {
       }
       await cmd('Input.dispatchMouseEvent', { type: 'mouseMoved', x: q.x, y: q.y });
     }
-    const ponto = (q && q.ok) ? q : p;
+    let ponto = (q && q.ok) ? q : p;
+    // Confere o que está NO PONTO antes de clicar: um clique que cai fora do
+    // diálogo fecha o compositor do Instagram (17/11). Mede de novo até 3s.
+    let alvo = await naAba('noPonto', cands, ponto.x, ponto.y);
+    for (let i = 0; alvo && !alvo.ok && i < 10; i++) {
+      await new Promise(r => setTimeout(r, 300));
+      const r2 = await naAba('localizar', cands, 1000);
+      if (r2 && r2.ok) ponto = r2;
+      alvo = await naAba('noPonto', cands, ponto.x, ponto.y);
+    }
+    if (alvo && !alvo.ok) throw new EtapaFalhou(`${oQue}: NÃO cliquei — no ponto (${Math.round(ponto.x)},${Math.round(ponto.y)}) está ${alvo.desc}, não o botão`);
+    if (alvo) ponto = { ...ponto, alvo: alvo.desc };
     await spClicarEm(cmd, ponto.x, ponto.y);
     return ponto;
   }
@@ -518,7 +529,9 @@ async function prepararRede(redeId, midia, texto, opcoes) {
           log(`✓ passo «${passo.id}»`, 'ok');
           continue;
         }
-        await clicar(passo.clicar, ESPERA_PADRAO_MS, `passo «${passo.id}»`);
+        const clicouPasso = await clicar(passo.clicar, ESPERA_PADRAO_MS, `passo «${passo.id}»`);
+        const fechou = async () => R.passos_no_dialogo && !(await naAba('existe', ['[role="dialog"]']))
+          ? new EtapaFalhou(`o diálogo de criação FECHOU depois do passo «${passo.id}» (cliquei em ${clicouPasso.alvo || 'ponto não conferido'}) — nada foi publicado`) : null;
         if (passo.esperar) {
           let e = await naAba('localizar', passo.esperar, 12000);
           // 16/11 (Instagram, 0.8.36): o clique em «Next» da tela Edit não
@@ -529,8 +542,9 @@ async function prepararRede(redeId, midia, texto, opcoes) {
             await clicar(passo.clicar, 3000, `passo «${passo.id}» (2ª vez)`);
             e = null;
           }
+          if ((!e || !e.ok) && !(await naAba('localizar', passo.clicar, 0))?.ok) { const f = await fechou(); if (f) throw f; }
           if (!e || !e.ok) e = await naAba('localizar', passo.esperar, ESPERA_PADRAO_MS);
-          if (!e || !e.ok) throw new EtapaFalhou(`depois do passo «${passo.id}», a próxima tela medida não apareceu`);
+          if (!e || !e.ok) throw (await fechou()) || new EtapaFalhou(`depois do passo «${passo.id}», a próxima tela medida não apareceu`);
         }
         log(`✓ passo «${passo.id}»`, 'ok');
       }
