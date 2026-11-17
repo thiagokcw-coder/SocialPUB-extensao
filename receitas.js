@@ -222,7 +222,7 @@ const RECEITAS = {
     // «Agora não» · «Adicionar botão»). Só a recusa; nunca aceitar a oferta.
     recusar_depois: ['Agora não', 'Not now', 'Agora não, obrigado', 'Ignorar', 'Skip']
       .map(t => ({ css: '[role="dialog"] [role="button"], [role="dialog"] button', texto: t })),
-    publicar: ['Publicar', 'Post', 'Postar', 'Publish', 'Compartilhar agora', 'Share now'].flatMap(t => [
+    publicar: ['Publicar', 'Post', 'Postar', 'Publish', 'Compartilhar agora', 'Share now', 'Partilhar', 'Partilhar agora', 'Share'].flatMap(t => [
       `[role="dialog"] [role="button"][aria-label="${t}"]`,
       { css: '[role="dialog"] [role="button"], [role="dialog"] button', texto: t }]),
   },

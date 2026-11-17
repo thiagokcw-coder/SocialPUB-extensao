@@ -11,7 +11,7 @@ async def main():
         page = await browser.new_page()
         for script in ('pagina.js', 'receitas.js', 'personas.js', 'motor.js', 'teclado.js'):
             await page.add_script_tag(content=(ROOT / script).read_text(encoding='utf-8'))
-        for mode in ('video', 'texto', 'sem_midia', 'perde_midia', 'outro_autor', 'troca_dialogo', 'legenda_perdida', 'publicar', 'troca_antes_publicar', 'reel_direto', 'reel_publicar', 'reel_processando', 'reel_oferta', 'reel_final', 'reel_retry', 'reel_travado', 'previa_intermediaria', 'previa_atrasada', 'previa_fora', 'transicao_lenta'):
+        for mode in ('video', 'texto', 'sem_midia', 'perde_midia', 'outro_autor', 'troca_dialogo', 'legenda_perdida', 'publicar', 'troca_antes_publicar', 'reel_direto', 'reel_publicar', 'reel_processando', 'reel_oferta', 'reel_final', 'reel_retry', 'reel_travado', 'previa_intermediaria', 'previa_atrasada', 'previa_fora', 'transicao_lenta', 'ptpt_reel'):
             await page.set_content('<div role="dialog" id="fluxo"></div>')
             result = await page.evaluate("""async mode => {
               const caption = 'Legenda de teste', name = 'Uncensored Brasil';
@@ -20,7 +20,7 @@ async def main():
               let stage = 0, target = null, clicks = 0, advances = 0, recusou = 0, logs = [];
               const root = document.getElementById('fluxo');
               const render = () => {
-                const heading = stage === 0 ? 'Criar post' : stage === 1 && video ? 'Editar reel' : video ? 'Configurações do reel' : 'Configurações do post';
+                const heading = stage === 0 ? 'Criar post' : stage === 1 && video ? 'Editar reel' : video ? (mode === 'ptpt_reel' ? 'Definições de reels' : 'Configurações do reel') : 'Configurações do post';
                 const final = stage === (video ? 2 : 1);
                 const author = mode === 'outro_autor' && final ? 'Perfil Pessoal' : name;
                 const ausente = mode.startsWith('previa_') && (stage === 1 || (mode === 'previa_fora' && final));
@@ -28,7 +28,7 @@ async def main():
                 const text = (mode === 'legenda_perdida' || direto) && final ? '' : caption;
                 root.innerHTML = `<h2>${heading}</h2>` + (stage === 0 || mode === 'outro_autor' ? `<span>${author}</span>` : '')
                   + (direto && final ? `<textarea placeholder="Descreva seu reel...">${text}</textarea>` : stage === 0 || (final && video) ? `<div role="textbox" contenteditable="true" style="height:50px">${stage === 0 ? '' : text}</div>` : final ? `<section>${text}</section>` : '<input role="textbox" aria-label="Adicionar tags">')
-                  + media + `<button>${final ? 'Postar' : 'Avançar'}</button>`;
+                  + media + (final && mode === 'ptpt_reel' ? '<button>Guardar</button><button>Publicar</button>' : `<button>${final ? 'Postar' : 'Avançar'}</button>`);
               };
               render();
               const timeout = window.setTimeout, now = Date.now;
@@ -98,7 +98,7 @@ async def main():
                 return {result,clicks,advances,recusou,logs};
               } finally {window.setTimeout = timeout; Date.now = now;}
             }""", mode)
-            if mode in ('video', 'texto', 'publicar', 'reel_direto', 'reel_publicar', 'reel_processando', 'reel_oferta', 'reel_final', 'reel_retry', 'previa_intermediaria', 'previa_atrasada', 'transicao_lenta'):
+            if mode in ('video', 'texto', 'publicar', 'reel_direto', 'reel_publicar', 'reel_processando', 'reel_oferta', 'reel_final', 'reel_retry', 'previa_intermediaria', 'previa_atrasada', 'transicao_lenta', 'ptpt_reel'):
                 assert 'erro' not in result['result'], (mode, result)
                 assert result['result']['legendaOk'], (mode, result)
                 assert result['advances'] == (2 if mode == 'reel_retry' else 0 if mode == 'reel_final' else 1 if mode == 'texto' or mode.startswith('reel_') else 2), (mode, result)
@@ -165,6 +165,6 @@ async def main():
             }''', controle)
             assert state['etapa'] == 'final_reel' and state['midia'] == esperado, state
         await browser.close()
-    print('OK: 20 cenários Facebook; prévia atrasada/intermediária, mídia externa bloqueada e guardas de publicação')
+    print('OK: 21 cenários Facebook; prévia atrasada/intermediária, mídia externa bloqueada e guardas de publicação')
 
 asyncio.run(main())

@@ -13,7 +13,7 @@
 // a armadilha do «Criar» (textContent "Novo postCriar", tela só "Criar") e a do
 // «Original» (rótulo num <span> dentro do botão — o innerText do botão é o mesmo).
 (() => {
-  const VERSAO = 17;
+  const VERSAO = 18;
   if (self.SP && self.SP.versao === VERSAO) return;
 
   const INVIS = /[​‌‍﻿⁠]/g;
@@ -158,7 +158,7 @@
      * antes dele. Nunca usa a legenda, o feed ou outro diálogo como prova. */
     facebookCompositorAberto() {
       return Array.from(document.querySelectorAll('[role="dialog"]')).some(d => visivel(d)
-        && /(?:Criar post|Criar publicação|Editar reel|Criar reel|Configurações do (?:post|reel)|Create post|Edit reel|Create reel|Reel settings|Post settings)/i.test(d.innerText));
+        && /(?:Criar post|Criar publicação|Editar reel|Criar reel|Configurações do (?:post|reel)|Defini[cç][oõ]es d[aoe]s? (?:reels?|publica[cç][aã]o)|Create post|Edit reel|Create reel|Reels? settings|Post settings)/i.test(d.innerText));
     },
 
     facebookConta(nome) {
@@ -277,10 +277,12 @@
       const d = f.dialogo;
       const titulos = Array.from(d.querySelectorAll('h1,h2,h3,[role="heading"]')).filter(visivel).map(e => norm(e.innerText));
       const tem = lista => titulos.some(t => lista.includes(t));
+      // pt-PT, 16/11: «Definições de reels» (com «de» e plural) — casa por regex.
+      const temRe = re => titulos.some(t => re.test(t));
       const descricao = Array.from(d.querySelectorAll('textarea, [role="textbox"], [contenteditable="true"]')).filter(visivel)
         .find(e => /^(?:Descreva (?:seu|o teu) reel|Describe your reel|Escreva uma descrição|Write a description)/i.test(e.getAttribute('aria-label') || e.getAttribute('placeholder') || e.getAttribute('data-placeholder') || ''));
-      const finalReel = descricao && Array.from(d.querySelectorAll('button,[role="button"]')).some(e => visivel(e) && /^(?:Publicar|Compartilhar agora|Share now|Post|Postar|Publish)$/i.test(norm(e.innerText) || e.getAttribute('aria-label')));
-      const etapa = tem(['Configurações do reel', 'Reel settings', 'Definições do reel']) || finalReel ? 'final_reel'
+      const finalReel = descricao && Array.from(d.querySelectorAll('button,[role="button"]')).some(e => visivel(e) && /^(?:Publicar|Partilhar|Partilhar agora|Compartilhar agora|Share|Share now|Post|Postar|Publish)$/i.test(norm(e.innerText) || e.getAttribute('aria-label')));
+      const etapa = tem(['Configurações do reel', 'Reel settings', 'Definições do reel']) || temRe(/^(?:Configura[cç][oõ]es|Defini[cç][oõ]es) d[oe]s? reels?$|^Reels? settings$/i) || finalReel ? 'final_reel'
         : tem(['Configurações do post', 'Post settings', 'Definições da publicação']) ? 'final_post'
         : tem(['Editar reel', 'Edit reel']) ? 'editar_reel'
         : tem(['Criar reel', 'Create reel']) ? 'criar_reel'

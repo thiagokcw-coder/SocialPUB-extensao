@@ -217,6 +217,14 @@ senha.
 
 ## Testes
 
+**0.8.36 — Facebook reconhece «Definições de reels» (pt-PT):** a última tela
+do reel no Facebook em português de Portugal se chama «Definições de reels»
+(com «de» e no plural); o motor só conhecia «Configurações do reel», «Reel
+settings» e «Definições do reel» e parava depois de Avançar. Agora casa por
+padrão (do/de, singular/plural, Configurações/Definições). O botão final aceita
+também «Partilhar» e «Share» (além de Publicar/Postar/Post). Cenário `ptpt_reel`
+em `python tests/test_facebook_fluxo.py`.
+
 **0.8.35 — Facebook publica como a Página DA PERSONA; avisos antes de criar:**
 o motor usava sempre a Página Uncensored Brasil; agora usa o nome e o link da
 persona (sem link, o padrão de antes). Antes de clicar em criar (Instagram e
