@@ -748,6 +748,34 @@ async function prepararRede(redeId, midia, texto, opcoes) {
       return res;
     }
     res.publicou = await naAba('sumiu', [R.publicar[clicado.idx]], 30000);
+    if (res.publicou && R.publicado) {
+      // Rede com mensagem própria de sucesso (Instagram, 16/11): o botão sumir
+      // é só o começo do envio. PUBLICADO só com a mensagem; a aba não fecha.
+      const esperaP = R.publicado_espera_s || 180;
+      log(`o botão sumiu — esperando a rede confirmar que publicou (até ${esperaP}s; NÃO feche a aba) …`);
+      const fimP = Date.now() + esperaP * 1000;
+      let viuEnviando = false, estado = null;
+      while (Date.now() < fimP) {
+        if (await naAba('existe', R.publicado)) { estado = 'ok'; break; }
+        if (R.falhou_publicar && await naAba('existe', R.falhou_publicar)) { estado = 'falhou'; break; }
+        if (R.enviando && await naAba('existe', R.enviando)) viuEnviando = true;
+        await new Promise(r => setTimeout(r, 1000));
+      }
+      if (estado === 'falhou') throw new EtapaFalhou(`cliquei em publicar e ${R.nome} disse que NÃO conseguiu publicar`);
+      if (estado === 'ok') {
+        res.evidencia = 'a rede mostrou a mensagem de publicado';
+        log('✓ PUBLICADO: ' + R.nome + ' confirmou que publicou', 'ok');
+        return res;
+      }
+      res.publicou = false;
+      if (viuEnviando && await naAba('existe', R.enviando)) {
+        res.processando = true;
+        log(`? ${R.nome} ainda está enviando depois de ${esperaP}s — deixe a aba aberta e confira o perfil`, 'am');
+      } else {
+        log(`? o botão sumiu, mas ${R.nome} não mostrou a mensagem de publicado em ${esperaP}s — CONFIRA o perfil antes de publicar de novo`, 'am');
+      }
+      return res;
+    }
     log(res.publicou ? '✓ PUBLICADO: o botão de publicar saiu da tela'
                      : '? cliquei em publicar e o botão CONTINUA na tela depois de 30s — CONFIRA na aba antes de publicar de novo',
         res.publicou ? 'ok' : 'am');

@@ -112,6 +112,19 @@ const RECEITAS = {
     // Há «Partilhar»/«Compartilhar» no feed, atrás do diálogo (ícone sem texto):
     // só dentro do diálogo, por texto exato.
     publicar: ['Compartilhar', 'Partilhar', 'Share'].map(t => ({ css: '[role="dialog"] *', texto: t })),
+    // 16/11 (0.8.37, Grok): «Share» sumiu, o motor disse PUBLICADO e o reel
+    // nunca chegou ao perfil. O sumiço do botão não basta: só é PUBLICADO
+    // com a mensagem do próprio Instagram. «Sharing» ainda é envio.
+    publicado: ['Your reel has been shared', 'Your post has been shared', 'Reel shared', 'Post shared',
+                'Seu reel foi compartilhado', 'Seu post foi compartilhado', 'Sua publicação foi compartilhada',
+                'Reel compartilhado', 'Post compartilhado', 'Publicação compartilhada',
+                'O teu reel foi partilhado', 'A tua publicação foi partilhada', 'Reel partilhado', 'Publicação partilhada']
+      .map(t => ({ css: '[role="dialog"] *', contem: t }))
+      .concat(['[role="dialog"] img[alt="Animated checkmark"]', '[role="dialog"] img[alt="Marca de seleção animada"]']),
+    enviando: ['Sharing', 'Compartilhando', 'A partilhar'].map(t => ({ css: '[role="dialog"] *', contem: t })),
+    falhou_publicar: ["couldn't be shared", 'could not be shared', 'Não foi possível compartilhar', 'Não foi possível partilhar']
+      .map(t => ({ css: '[role="dialog"] *', contem: t })),
+    publicado_espera_s: 180,
   },
 
   tiktok: {

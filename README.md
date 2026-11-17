@@ -217,6 +217,13 @@ senha.
 
 ## Testes
 
+**0.8.38 — Instagram só é PUBLICADO com a mensagem do Instagram:** na 0.8.37
+o motor disse PUBLICADO porque «Share» sumiu, e o reel nunca chegou ao perfil.
+Agora, depois do clique, espera até 180 s por «Reel shared» / «Seu reel foi
+compartilhado» (e variantes pt-PT). «Sharing» ainda é envio (a aba não pode
+fechar); «couldn't be shared» vira erro; sumiço sem mensagem fica «CONFIRA».
+`python tests/test_instagram_passos.py`.
+
 **0.8.37 — Instagram: «Next» da tela Edit que não pegou:** o diálogo ainda
 animava quando o motor clicou em «Next»; o botão andou e o clique caiu fora
 («mudou de lugar com o mouse em cima»). Agora o motor espera o botão parar

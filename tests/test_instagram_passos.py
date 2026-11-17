@@ -19,7 +19,12 @@ let d;
 const tela = (rotulo, ...filhos) => { d.setAttribute('aria-label', rotulo); d.replaceChildren(...filhos); };
 const legenda = () => { const c = document.createElement('div'); c.setAttribute('aria-label','Add a caption...');
   c.setAttribute('role','textbox'); c.contentEditable = 'true'; c.style.cssText = 'width:200px;height:60px';
-  tela('Create new post', c, btn('Share', () => {})); };
+  tela('Create new post', c, btn('Share', compartilhar)); };
+const compartilhar = () => {
+  if (window.FIM === 'sumiu') { d.remove(); return; }
+  const h = document.createElement('h1'); h.textContent = 'Sharing'; tela('Sharing', h);
+  setTimeout(() => { h.textContent = window.FIM === 'ok' ? 'Reel shared' : "Your reel couldn't be shared."; }, 1500);
+};
 const editar = () => tela('Edit', btn('Next', () => { if (++cliquesNext >= window.MODO) legenda(); }));
 const corte = () => {
   const s = document.createElement('button'); s.style.cssText = 'width:40px;height:40px';
@@ -45,7 +50,7 @@ window.chrome = {
 """
 
 
-async def rodar(b, modo, arquivo):
+async def rodar(b, modo, arquivo, fim=''):
     page = await b.new_page()
     session = await page.context.new_cdp_session(page)
 
@@ -55,11 +60,12 @@ async def rodar(b, modo, arquivo):
         return await session.send(m, params)
     await page.expose_function('cdp', cdp)
     await page.set_content(HTML)
-    await page.evaluate(f'window.MODO = {modo}')
+    await page.evaluate(f'window.MODO = {modo}; window.FIM = "{fim}"')
     await page.add_script_tag(content=MOCK)
     for name in ('pagina.js', 'receitas.js', 'arquivo.js', 'teclado.js', 'personas.js', 'cookies.js', 'motor.js'):
         await page.add_script_tag(content=(ROOT / name).read_text(encoding='utf-8'))
-    r = await page.evaluate("""() => prepararRede('instagram', {nome:'v.mp4', tipo:'video/mp4', b64:'AAAA'}, '', {publicar:false, log: s => logs.push(s)})""")
+    await page.evaluate('RECEITAS.instagram.publicado_espera_s = 4')
+    r = await page.evaluate("""fim => prepararRede('instagram', {nome:'v.mp4', tipo:'video/mp4', b64:'AAAA'}, fim ? 'Legenda' : '', {publicar: !!fim, log: s => logs.push(s)})""", fim)
     out = r, await page.evaluate('logs'), await page.evaluate('cliquesNext')
     await page.close()
     return out
@@ -76,6 +82,15 @@ async def main():
         assert any('cliquei de novo' in s for s in logs), (r, logs)
         assert any('✓ passo «editar»' in s for s in logs), (r, logs)
         assert n == 2, (n, logs)
+        # Depois de «Share»: só é PUBLICADO com a mensagem do Instagram.
+        r, logs, _ = await rodar(b, 1, arquivo, 'ok')
+        assert r.get('publicou') and any('confirmou que publicou' in s for s in logs), (r, logs)
+        r, logs, _ = await rodar(b, 1, arquivo, 'sumiu')
+        assert r.get('clicou') and not r.get('publicou') and not r.get('erro'), (r, logs)
+        assert any('não mostrou a mensagem de publicado' in s for s in logs), logs
+        r, logs, _ = await rodar(b, 1, arquivo, 'falhou')
+        assert not r.get('publicou') and 'NÃO conseguiu publicar' in r.get('erro', ''), (r, logs)
+        print('OK: Instagram — PUBLICADO só com «Reel shared»; sumiço sem mensagem e falha não contam')
         print('OK: Instagram — Next da tela Edit clicado de novo só quando a tela não mudou')
         await b.close()
 
