@@ -217,6 +217,13 @@ senha.
 
 ## Testes
 
+**0.8.40 — o clique só vale se cair NO botão:** no Facebook (18/11) o
+«Avançar» andou e o clique caiu em «Adicionar tags Encurtar vídeo…», no mesmo
+diálogo — a 0.8.39 só recusava clique FORA do diálogo. Agora o ponto tem de
+cair no próprio botão (ou dentro dele); campo de texto aceita o placeholder por
+cima. A 2ª tentativa de Avançar também passa pela conferência, e «cliquei em
+publicar» diz o que estava no ponto. `python tests/test_no_ponto.py`.
+
 **0.8.39 — nunca clicar fora do diálogo (Instagram fechava sozinho):** na Vox
 o diálogo de criação do Instagram sumia entre «cortar» e «editar» e a aba voltava
 ao feed. Um clique que cai FORA do diálogo fecha o compositor. Antes de cada

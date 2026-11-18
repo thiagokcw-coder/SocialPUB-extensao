@@ -13,7 +13,7 @@
 // a armadilha do «Criar» (textContent "Novo postCriar", tela só "Criar") e a do
 // «Original» (rótulo num <span> dentro do botão — o innerText do botão é o mesmo).
 (() => {
-  const VERSAO = 19;
+  const VERSAO = 20;
   if (self.SP && self.SP.versao === VERSAO) return;
 
   const INVIS = /[​‌‍﻿⁠]/g;
@@ -125,11 +125,22 @@
         desc = alvo.tagName.toLowerCase() + (papel ? `[role=${papel}]` : '') + (t ? ` «${t}»` : '')
           + (alvo.closest('[role="dialog"]') ? ' (no diálogo)' : ' (FORA de diálogo)');
       }
-      // Só recusa o caso perigoso: o alvo está num diálogo e o ponto cai
-      // FORA de qualquer diálogo (ou em nada). Camadas dentro do diálogo
-      // (placeholder por cima do campo) continuam valendo.
+      // O ponto tem de cair NO elemento (ou dentro dele). 18/11 (Facebook):
+      // o «Avançar» andou e o clique caiu em «Adicionar tags Encurtar vídeo…»
+      // no mesmo diálogo. Exceção: CAMPO de texto — o placeholder fica por
+      // cima, como irmão; aí basta o ponto estar no mesmo diálogo.
       const dentro = el => !!(el && el.closest('[role="dialog"]'));
-      const ok = !a || !dentro(a.el) || dentro(alvo);
+      let ok = !a;
+      if (a && alvo) {
+        const campo = a.el.matches('input, textarea, [contenteditable="true"], [role="textbox"]')
+          || !!a.el.querySelector('input, textarea, [contenteditable="true"], [role="textbox"]');
+        if (a.el === alvo || a.el.contains(alvo)) ok = true;
+        else if (alvo.contains(a.el)) {
+          const ra = a.el.getBoundingClientRect(), rb = alvo.getBoundingClientRect();
+          ok = rb.width * rb.height <= 4 * Math.max(1, ra.width * ra.height);
+        }
+        if (!ok && campo) ok = !dentro(a.el) || alvo.closest('[role="dialog"]') === a.el.closest('[role="dialog"]');
+      }
       return { ok, desc };
     },
 

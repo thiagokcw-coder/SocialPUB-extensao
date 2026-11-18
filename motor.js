@@ -618,7 +618,8 @@ async function prepararRede(redeId, midia, texto, opcoes) {
           e = await estadoFacebook();
           if (e.etapa !== anterior) break;
           log('tentativa 2: clique no centro de Avançar ' + JSON.stringify(clicado));
-          await spClicarEm(cmd, clicado.x, clicado.y);
+          // Mesmo clique conferido da 1ª vez (o ponto tem de cair no botão).
+          clicado = await clicar(R.avancar, 1000, 'Avançar do Facebook (2ª tentativa)');
         }
         if (anterior !== 'criar' && !['editar_reel', 'criar_reel', 'final_reel'].includes(e.etapa)) throw new EtapaFalhou('transição inesperada ao configurar o reel');
         log(`✓ Facebook: ${anterior} → ${e.etapa}`, 'ok');
@@ -708,7 +709,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
     if (facebookIniciado && !(await naAba('facebookArmarConfirmacao'))) throw new EtapaFalhou('não consegui preparar a confirmação do Facebook');
     const clicado = await clicar(R.publicar, 5000, 'botão de publicar');
     res.clicou = true;
-    log('cliquei em publicar …');
+    log('cliquei em publicar …' + (clicado.alvo ? ` (no ponto: ${clicado.alvo})` : ''));
 
     // confirmação depois do clique: uma janela curta e UM clique só
     etapa('verificar resultado do clique');
