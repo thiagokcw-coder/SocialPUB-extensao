@@ -217,6 +217,12 @@ senha.
 
 ## Testes
 
+**0.8.42 — Facebook: «Criar post» lento não leva 2º clique:** em 25/11 o
+diálogo «Criar post» abriu, mas o campo de texto levou mais de 10 s; o motor
+tentou clicar em criar de novo (atrás do diálogo — a conferência do ponto da
+0.8.40 barrou). Agora, se já há um diálogo aberto, espera até 30 s pelo campo
+sem clicar de novo. `python tests/test_criar_lento.py`.
+
 **0.8.41 — Instagram deslogado para com a causa:** em 25/11 o Instagram abriu
 deslogado e o «Criar» genérico casou o link «Criar nova conta» — a aba foi parar
 no cadastro e o erro dizia «não era o botão de criar». Agora, antes de clicar

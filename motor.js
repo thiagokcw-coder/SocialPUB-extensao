@@ -456,10 +456,18 @@ async function prepararRede(redeId, midia, texto, opcoes) {
           // Um aviso pode ter engolido o clique: fecha e tenta UMA vez mais.
           log(`cliquei em criar («${criado?.texto || criado?.aria || '?'}») e o compositor não abriu em 10s — fechando avisos e tentando de novo`, 'am');
           await fecharAvisos(1500);
-          if (!(await naAba('existe', R.abrir.esperar))) {
+          if (await naAba('existe', R.abrir.esperar)) d = await naAba('localizar', R.abrir.esperar, 1000);
+          else if (await naAba('existe', ['[role="dialog"]'])) {
+            // 25/11 (Facebook): o diálogo «Criar post» ABRIU, mas o campo de
+            // texto demorou mais de 10s. Clicar em criar de novo cairia atrás
+            // do diálogo — espera ele terminar de carregar.
+            log('um diálogo abriu, mas o campo de texto ainda não apareceu — esperando até 30s sem clicar de novo', 'am');
+            d = await naAba('localizar', R.abrir.esperar, 30000);
+            if (!d || !d.ok) throw new EtapaFalhou('o diálogo de criar abriu, mas o campo de texto não apareceu em 40s — não cliquei de novo (cairia atrás do diálogo)');
+          } else {
             criado = await clicar(R.abrir.clicar, 5000, 'botão de criar (2ª vez)');
             d = await naAba('localizar', R.abrir.esperar, 15000);
-          } else d = await naAba('localizar', R.abrir.esperar, 1000);
+          }
         }
         if ((!d || !d.ok) && R.abrir.reserva && !R.abrir.clicar) {
           log('o compositor não abriu pela URL em 20s — tentando pelo botão de criar da barra lateral', 'am');
