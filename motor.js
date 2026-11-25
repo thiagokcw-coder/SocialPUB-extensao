@@ -429,6 +429,11 @@ async function prepararRede(redeId, midia, texto, opcoes) {
           } while (Date.now() < fim && n < 3);
           return n;
         };
+        // Rede aberta DESLOGADA (25/11, Instagram): o «Criar» genérico casou
+        // «Criar nova conta» e foi parar no cadastro. Parar com a causa.
+        if (R.deslogado && await naAba('existe', R.deslogado)) {
+          throw new EtapaFalhou(`${R.nome} abriu DESLOGADO (tela de entrar/cadastrar) — a sessão guardada não vale mais: em «Contas da persona», use «Entrar pela tela» e «Salvar sessão atual»`);
+        }
         if (R.abrir.clicar) await fecharAvisos(2500);
         let criado = null;
         if (R.abrir.clicar) criado = await clicar(R.abrir.clicar, ESPERA_PADRAO_MS, 'botão de criar');
@@ -468,6 +473,7 @@ async function prepararRede(redeId, midia, texto, opcoes) {
           // Clicar em "criar" não muda de página: se mudou, o clique foi parar
           // em outro lugar — e seguir clicando lá seria pior.
           const depois = await naAba('onde');
+          if (depois !== antes && /\/accounts\/|\/login|signup/i.test(depois)) throw new EtapaFalhou(`o clique em criar levou para ${depois} (entrar/cadastrar) — ${R.nome} está DESLOGADO: em «Contas da persona», use «Entrar pela tela» e «Salvar sessão atual»`);
           if (depois !== antes) throw new EtapaFalhou(`o clique em criar levou para ${depois} — não era o botão de criar; parei`);
           throw new EtapaFalhou(`cliquei em criar («${criado?.texto || criado?.aria || '?'}») duas vezes e o compositor não abriu — veja o diagnóstico da tela`);
         }

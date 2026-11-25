@@ -217,6 +217,14 @@ senha.
 
 ## Testes
 
+**0.8.41 — Instagram deslogado para com a causa:** em 25/11 o Instagram abriu
+deslogado e o «Criar» genérico casou o link «Criar nova conta» — a aba foi parar
+no cadastro e o erro dizia «não era o botão de criar». Agora, antes de clicar
+em criar, o motor procura sinais de tela deslogada (`deslogado` na receita:
+campo de senha, links de entrar/cadastrar) e para dizendo para renovar a
+sessão; o «Criar»/«Create» genérico nunca casa links `/accounts/`.
+`python tests/test_instagram_deslogado.py`.
+
 **0.8.40 — o clique só vale se cair NO botão:** no Facebook (18/11) o
 «Avançar» andou e o clique caiu em «Adicionar tags Encurtar vídeo…», no mesmo
 diálogo — a 0.8.39 só recusava clique FORA do diálogo. Agora o ponto tem de

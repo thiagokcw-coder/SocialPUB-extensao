@@ -61,7 +61,9 @@ const RECEITAS = {
       avisos: ['Agora não', 'Not Now', 'Not now', 'Agora não, obrigado', 'Dispensar', 'Dismiss']
         .map(t => ({ css: '[role="dialog"] button, [role="dialog"] [role="button"]', texto: t })),
       clicar: ['a:has(svg[aria-label="Novo post"])', 'a:has(svg[aria-label="Nova publicação"])',
-               'a:has(svg[aria-label="New post"])', { css: 'a', contem: 'Criar' }, { css: 'a', contem: 'Create' }],
+               'a:has(svg[aria-label="New post"])',
+               // Nunca links de conta: deslogado, «Criar nova conta» casava (25/11).
+               { css: 'a:not([href*="/accounts/"])', contem: 'Criar' }, { css: 'a:not([href*="/accounts/"])', contem: 'Create' }],
       // «Criar» abre um SUBMENU (pt-BR: Postar · Vídeo ao vivo · Anúncio); só a
       // primeira opção leva ao diálogo. Texto EXATO: a transmissão ao vivo é
       // vizinha e não pode ser clicada.
@@ -80,6 +82,9 @@ const RECEITAS = {
     // Todos os passos acontecem dentro do diálogo de criação: se ele sumir,
     // o erro diz que FECHOU (e onde caiu o último clique).
     passos_no_dialogo: true,
+    // Sinais de tela deslogada (entrar/cadastrar). Logado, nada disto existe.
+    deslogado: ['input[name="password"]', 'input[type="password"]', 'a[href*="/accounts/emailsignup"]',
+                'a[href*="/accounts/signup"]', 'a[href*="/accounts/login"]'],
     passos: [
       // aviso «posts de vídeo são compartilhados como reels» — só às vezes
       { id: 'aviso_reels', opcional: true, clicar: [{ css: '[role="dialog"] button', texto: 'OK' }], esperar_sumir: true },

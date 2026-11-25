@@ -13,7 +13,7 @@
 // a armadilha do «Criar» (textContent "Novo postCriar", tela só "Criar") e a do
 // «Original» (rótulo num <span> dentro do botão — o innerText do botão é o mesmo).
 (() => {
-  const VERSAO = 20;
+  const VERSAO = 21;
   if (self.SP && self.SP.versao === VERSAO) return;
 
   const INVIS = /[​‌‍﻿⁠]/g;
@@ -423,7 +423,7 @@
         janela: innerWidth + 'x' + innerHeight,
         visibilidade: document.visibilityState,
         foco: document.hasFocus(),
-        parece_login: /\/(accounts\/login|login|signin|challenge|checkpoint|suspended)/i.test(location.pathname)
+        parece_login: /\/(accounts\/login|accounts\/emailsignup|accounts\/signup|login|signin|challenge|checkpoint|suspended)/i.test(location.pathname)
           || !!document.querySelector('input[type="password"]'),
         dialogos,
         facebook_banner_troca: this.facebookBanner(),
